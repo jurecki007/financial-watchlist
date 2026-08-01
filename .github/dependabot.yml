@@ -4,11 +4,22 @@ version: 2
 # stale pin means missing security fixes. Dependabot resolves that — it bumps
 # the SHA and rewrites the trailing version comment, so pins stay current
 # without anyone hand-editing hashes.
+#
+# Cooldown: don't adopt a release the day it ships. Most compromised-package
+# incidents are caught within days of publication, so a short wait lets the
+# ecosystem absorb that risk instead of us. Patches move fastest, majors
+# slowest — those need a human read anyway. Repeated per ecosystem because
+# dependabot.yml rejects unknown top-level keys, so a YAML anchor won't validate.
 updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
     commit-message:
       prefix: "ci"
 
@@ -16,6 +27,11 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
     commit-message:
       prefix: "deps"
     groups:
