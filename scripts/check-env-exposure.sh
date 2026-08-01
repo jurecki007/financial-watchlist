@@ -36,7 +36,8 @@ pass() { printf '\033[32m✓ %s\033[0m\n' "$1"; }
 # Server-only variables. If any of these ever appear with a NEXT_PUBLIC_ prefix,
 # or inside a client component, the value ships to the browser.
 SERVER_ONLY=(
-  SUPABASE_SERVICE_ROLE_KEY
+  SUPABASE_SECRET_KEY
+  SUPABASE_SERVICE_ROLE_KEY # legacy name — still guarded in case it reappears
   TWELVE_DATA_API_KEY
   FINNHUB_API_KEY
   RESEND_API_KEY
@@ -105,8 +106,11 @@ fi
 # ---------------------------------------------------------------------------
 scan_targets=$(tracked | grep -v "^$SELF$" | grep -v '^\.env\.example$' || true)
 if [ -n "$scan_targets" ]; then
-  # Supabase/JWT service keys, Resend keys, generic assigned long tokens.
-  patterns='eyJhbGciOi[A-Za-z0-9_-]{20,}|re_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(api[_-]?key|secret|token|password)["'"'"']?\s*[:=]\s*["'"'"'][A-Za-z0-9/+_-]{24,}["'"'"']'
+  # Supabase secret keys (both the sb_secret_ format and legacy service_role
+  # JWTs), Resend keys, generic assigned long tokens.
+  # sb_publishable_ is deliberately NOT matched — it is designed to ship to the
+  # browser, and flagging it would train people to ignore this check.
+  patterns='sb_secret_[A-Za-z0-9_-]{16,}|eyJhbGciOi[A-Za-z0-9_-]{20,}|re_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(api[_-]?key|secret|token|password)["'"'"']?\s*[:=]\s*["'"'"'][A-Za-z0-9/+_-]{24,}["'"'"']'
   hits=$(printf '%s\n' $scan_targets | xargs grep -InEi "$patterns" 2>/dev/null || true)
   if [ -n "$hits" ]; then
     fail "Possible credential in tracked content:"

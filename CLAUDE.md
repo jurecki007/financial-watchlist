@@ -85,7 +85,8 @@ news_cache        (ticker, article_json, fetched_at)
 
 - TypeScript strict mode on.
 - Server components by default; client components (`"use client"`) only where interactivity requires it (charts, forms, search input).
-- Environment variables: `TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only, never exposed to client).
+- Environment variables: `TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (server-only, never exposed to client).
+- **Supabase key naming follows the current API-key system, not the legacy JWT one.** `sb_publishable_…` replaces the old anon key; `sb_secret_…` replaces service_role. The earlier `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` names in this file predated knowing which format the project would issue — they were renamed once the real project turned out to use the new keys, so the variable name states what the value actually is. `check-env-exposure.sh` still guards the legacy names in case they reappear.
 - Commit RLS policies as SQL migrations, not as changes made only through the Supabase dashboard — the migration history is itself part of the demo's story.
 
 ## Working Practices
