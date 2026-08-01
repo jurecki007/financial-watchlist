@@ -4,9 +4,8 @@ Track companies, watch prices and charts, read the news that moves them.
 
 **Live:** [financial-demo.nyxiontech.com](https://financial-demo.nyxiontech.com)
 
-> **Status: Phase 1 complete (bar the Supabase project).** Building in phases — see
-> [ROADMAP.md](ROADMAP.md), or the live `/roadmap` page once Phase 3 ships. Full
-> architecture write-up lands with Phase 6.
+> **Status: Phase 1 complete.** Building in phases — see [ROADMAP.md](ROADMAP.md), or the
+> live `/roadmap` page once Phase 3 ships. Full architecture write-up lands with Phase 6.
 
 ## Stack
 
@@ -56,6 +55,11 @@ cloud stays off.
 **No CSP yet.** A useful Content-Security-Policy for Next.js needs per-request nonces
 threaded through the App Router. A guessed policy either breaks hydration or is permissive
 enough to certify nothing, so it gets built in Phase 3 against pages that exist.
+
+**Supabase keys use the current naming, not the legacy one.** `sb_publishable_…` replaces
+the old anon key and `sb_secret_…` replaces service_role, so the environment variables are
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` rather than the older
+`…_ANON_KEY` / `…_SERVICE_ROLE_KEY`. A variable should say what its value actually is.
 
 ## Security
 

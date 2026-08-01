@@ -7,7 +7,11 @@ Demo project built to showcase full-stack skill (auth, database, RLS, external A
 ### Phase 1 — Foundation
 - [x] Next.js 15 (App Router) + TypeScript + Tailwind scaffold — PR #1
 - [x] Cloudflare domain → Vercel deploy pipeline verified with a blank page — PR #2, live at [financial-demo.nyxiontech.com](https://financial-demo.nyxiontech.com)
-- [ ] Supabase project created, env vars wired — *waiting on the project ref; Maciej is creating it*
+- [x] Supabase project created, env vars wired — project `fsboxdlbncegnhcjniaf`, local `.env.local` wired and verified against the live API
+
+**Phase 1 complete.** Two follow-ups that are not Phase 1 blockers:
+- Vercel environment variables still need adding (nothing reads them until Phase 2)
+- Google OAuth is not yet enabled on the Supabase project — needs a Google Cloud Console client, done in Phase 2
 
 Delivered alongside, not originally listed:
 - [x] Public repo hardened: pre-commit secret scan, CI (gitleaks + semgrep OWASP + `npm audit`), weekly sweep, GitHub push protection
