@@ -69,10 +69,10 @@ export default function Home() {
           </div>
 
           <div className="my-auto max-w-[34rem] py-16">
-            <h1 className="rise text-balance text-[2.5rem] leading-[1.08] font-medium tracking-[-0.02em] sm:text-[3.5rem]">
+            <h1 className="rise text-balance text-[clamp(1.9rem,7vw,3.5rem)] leading-[1.08] font-medium tracking-[-0.02em]">
               Every company you follow. One clear view.
             </h1>
-            <p className="rise mt-6 max-w-[30rem] text-[1.05rem] leading-relaxed text-[var(--dim)]">
+            <p className="rise mt-6 max-w-[30rem] text-[clamp(0.95rem,2.5vw,1.05rem)] leading-relaxed text-[var(--dim)]">
               Prices, charts and the news that moves them — for the companies
               you actually care about, not the whole market.
             </p>
@@ -93,7 +93,7 @@ export default function Home() {
             </div>
           </div>
 
-          <p className="font-mono text-xs text-[var(--faint)]">
+          <p className="max-w-full font-mono text-[11px] break-words text-[var(--faint)] sm:text-xs">
             Gold, daily — {fixture.bars.length} sessions to{" "}
             {fixture.captured}. Static sample.
           </p>

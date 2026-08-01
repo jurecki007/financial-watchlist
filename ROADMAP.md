@@ -51,22 +51,22 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Contrast verified against the rendered chart, not the bare ground
 - [x] Feature section: watchlist, live charts, price alerts
 - [x] Footer: tech-stack credits, GitHub link, `/roadmap` link
-- [ ] Responsive at 375 / 768 / 1440 (hero chart must degrade gracefully on mobile, not squash)
-- [ ] Accessibility pass: contrast, focus rings, semantic landmarks, reduced-motion, colourblind-safe deltas
+- [ ] Responsive at 375 / 768 / 1440 — fluid `clamp()` type shipped and `overflow-x: hidden` guards the body, but **not verified**: headless Chrome would not honour the layout viewport, so these need a real device or browser devtools
+- [x] Accessibility pass — global `:focus-visible` ring, reduced-motion honoured throughout, colourblind-safe deltas (validated ΔE 10.7 plus filled/hollow candles), `aria-live` on toasts and search status, semantic landmarks. *Contrast verified by calculation, not yet by an automated audit run.*
 
 **Shell**
-- [ ] App shell: nav, dashboard layout, dark-mode toggle
+- [ ] App shell: nav and dark-mode toggle — dashboard layout is done; the toggle needs a light theme, which the design direction defers behind dark
 - [x] Loading / empty / error states as reusable components
 - [x] Toast system (dismissible, deduplicated by error class, accessible via `aria-live`)
 
 **Loading experience** — the perceived-speed work. Decisions locked; see `CLAUDE.md`.
 - [x] Stream the shell — prices sit in their own Suspense boundary so a rate-limited feed delays numbers, not the page
 - [x] Cache-first render with an `as of HH:MM` badge; stale values marked in gold rather than hidden
-- [ ] Anti-flash timing: ~200ms before a skeleton appears, ~400ms minimum once shown
+- [x] Anti-flash timing — skeletons hold at opacity 0 for 200ms then fade over 400ms, so content that streams in faster replaces them before they were ever visible
 - [x] Skeletons composed from the same layout primitives as the real components
 - [x] Placeholders shaped like their data (digit-width `ch` units in the mono face)
 - [x] Opacity pulse, not shimmer sweep; no animation at all under `prefers-reduced-motion`
-- [ ] Hero chart draw-in *is* its loading state — no spinner, aspect-ratio box reserved for zero CLS
+- [x] Hero chart draw-in *is* its loading state — no spinner; the chart is absolutely positioned in a min-height section so nothing shifts when it mounts
 - [x] Search keeps previous results on screen while fetching; spinner sits inside the input
 
 **`/roadmap` page**
@@ -89,8 +89,8 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Company detail page: candlestick chart with crosshair + OHLC readout, key stats (market cap, P/E, 52w range), recent headlines — four independent Suspense boundaries
 
 ### Phase 6 — Polish Pass
-- [ ] Responsive check (mobile/tablet/desktop)
-- [ ] Skeleton loaders on all async data
+- [ ] Responsive check (mobile/tablet/desktop) — blocked on the same viewport limitation; needs a human with devtools
+- [x] Skeleton loaders on all async data (dashboard cards, price, stats, news)
 - [x] Fault-injection pass — `not_entitled` and `not_found` forced live with real invalid credentials; `rate_limited` and `unavailable` covered by unit tests rather than by burning the daily budget
 - [x] README with architecture + decisions
 

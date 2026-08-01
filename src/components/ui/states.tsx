@@ -11,8 +11,12 @@ import type { ReactNode } from "react";
  * Skeleton block.
  *
  * Opacity pulse, never a shimmer sweep — shimmer is a consumer-app tic that
- * fights the market-native register. Under prefers-reduced-motion it is a
- * static block, which is correct rather than degraded.
+ * fights the market-native register. Under prefers-reduced-motion the pulse
+ * stops, which is correct rather than degraded.
+ *
+ * The `skeleton` class holds it invisible for 200ms first. Content that
+ * streams in faster than that replaces the placeholder before it was ever
+ * seen, so a fast load shows no skeleton at all rather than a flash.
  */
 export function Skeleton({
   className = "",
@@ -25,7 +29,7 @@ export function Skeleton({
     <div
       aria-hidden
       style={style}
-      className={`animate-pulse rounded-[2px] bg-[var(--rule)] motion-reduce:animate-none ${className}`}
+      className={`skeleton animate-pulse rounded-[2px] bg-[var(--rule)] motion-reduce:animate-none ${className}`}
     />
   );
 }
