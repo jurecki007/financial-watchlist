@@ -5,9 +5,12 @@ Demo project built to showcase full-stack skill (auth, database, RLS, external A
 ## 🎯 MVP
 
 ### Phase 1 — Foundation
-- [ ] Next.js 15 (App Router) + TypeScript + Tailwind scaffold
-- [ ] Cloudflare domain → Vercel deploy pipeline verified with a blank page
-- [ ] Supabase project created, env vars wired
+- [x] Next.js 15 (App Router) + TypeScript + Tailwind scaffold
+- [ ] Cloudflare domain → Vercel deploy pipeline verified with a blank page — *blocked: needs Vercel + Cloudflare accounts*
+- [ ] Supabase project created, env vars wired — *blocked: needs Supabase account*
+
+Env vars are intentionally absent for now; `.env.example` documents every key the app
+will need. Nothing in the scaffold reads them yet, so the build is green without them.
 
 ### Phase 2 — Auth & Data Layer
 - [ ] Supabase Auth: email/password + Google OAuth
