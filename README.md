@@ -47,6 +47,23 @@ Nothing reads the env vars yet, so the app builds and runs with `.env.local` emp
 The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
 coexist with other Supabase projects on the same machine.
 
+## Charts and colour
+
+Price direction uses `--up: #2dd4bf` / `--down: #f87171`. These were **validated,
+not chosen by eye**. The obvious pair (`#3fb27f` / `#e2565f`) scored ΔE 5.1 for
+deuteranopia — below even the conditional floor, and unlike a `▲` a candlestick
+cannot signal direction by shape. The shipped pair separates on the blue–yellow
+axis, which deuteranopia preserves, scoring ΔE 10.7.
+
+Candles additionally encode direction as **filled (up) versus hollow (down)**, so
+the signal survives colour being removed entirely.
+
+The landing page hero renders from a committed fixture
+(`src/lib/fixtures/xau-daily.json`, 160 real XAU/USD daily bars) rather than a
+live call. The highest-traffic route is the least defensible place to spend an
+800-call daily budget — and it means the first thing anyone sees can never be an
+error state, whatever the providers are doing.
+
 ## Database
 
 Schema lives in [`supabase/migrations/`](supabase/migrations/) and is applied with

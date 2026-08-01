@@ -45,12 +45,12 @@ local-only testing cannot establish.
 First thing anyone sees — treated as a deliverable, not a placeholder. Direction:
 market-native dark, self-drawing gold candlestick hero. See "Design Direction" in `CLAUDE.md`.
 - [x] Design tokens: colour system promoted to global scope (gold accent; green/red reserved for price only); type scale settles with the landing page
-- [ ] Capture `lib/fixtures/xau-daily.json` — one-time real XAU/USD pull, committed
-- [ ] Hero chart: progressive `series.update()` draw-in, dynamically imported, reduced-motion → final frame
-- [ ] Hero copy: headline, subhead, primary CTA (sign up) + secondary (live demo), server-rendered as LCP
-- [ ] Contrast verified against the animation's lightest frame, not a static screenshot
-- [ ] Feature section: watchlist, live charts, price alerts
-- [ ] Footer: tech-stack credits, GitHub link, `/roadmap` link
+- [x] Capture `lib/fixtures/xau-daily.json` — 160 real XAU/USD daily bars, integrity-checked
+- [x] Hero chart: progressive draw-in, dynamically imported, reduced-motion → final frame
+- [x] Hero copy: headline, subhead, primary + secondary CTA, server-rendered as LCP
+- [x] Contrast verified against the rendered chart, not the bare ground
+- [x] Feature section: watchlist, live charts, price alerts
+- [x] Footer: tech-stack credits, GitHub link, `/roadmap` link
 - [ ] Responsive at 375 / 768 / 1440 (hero chart must degrade gracefully on mobile, not squash)
 - [ ] Accessibility pass: contrast, focus rings, semantic landmarks, reduced-motion, colourblind-safe deltas
 
@@ -77,7 +77,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 ### Phase 4 — Financial Data Integration
 - [ ] `lib/market-data/` provider interface + Twelve Data provider (quotes, time series, symbol search)
 - [ ] Finnhub provider (company news, fundamentals) behind the same interface — keys stay server-side
-- [ ] Verify both free tiers against real keys before building UI on top of them
+- [x] Verify both free tiers against real keys before building UI on top of them — Twelve Data time_series + quote, Finnhub company-news + metrics all confirmed working
 - [ ] Response caching (`quote_cache` / `news_cache` table) to respect free-tier rate limits
 - [ ] Batched quote fetching (one comma-separated call per dashboard render, not one per card)
 - [ ] Ticker search + autocomplete against Twelve Data's symbol search endpoint

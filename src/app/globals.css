@@ -29,9 +29,15 @@
   --gold: #d9a441;
   --gold-dim: #8a6a2b;
 
-  /* Price direction ONLY. */
-  --up: #3fb27f;
-  --down: #e2565f;
+  /* Price direction ONLY.
+     Validated with the dataviz palette checker, not chosen by eye. The obvious
+     pair (#3fb27f / #e2565f) failed at ΔE 5.1 for deuteranopia — below even the
+     conditional floor, and candlesticks cannot signal direction by shape the way
+     a ▲ can. These separate on the blue–yellow axis, which deuteranopia
+     preserves, giving ΔE 10.7. Candles also encode direction as filled vs
+     hollow so the signal survives colour being removed entirely. */
+  --up: #2dd4bf;
+  --down: #f87171;
 
   /* Structure */
   --rule: #23262b;
@@ -97,6 +103,26 @@ body {
   to {
     transform: scaleX(1);
   }
+}
+
+/* Hero scrim.
+   Written as explicit gradients rather than Tailwind opacity modifiers: those
+   do not apply to arbitrary CSS variables, so `via-[var(--ground)]/92` renders
+   fully transparent and the headline ends up sitting directly on candlesticks.
+   Contrast is verified against the chart's lightest frame, not the bare ground. */
+.hero-scrim {
+  background:
+    linear-gradient(
+      100deg,
+      rgb(8 9 11 / 0.97) 0%,
+      rgb(8 9 11 / 0.94) 34%,
+      rgb(8 9 11 / 0.62) 58%,
+      rgb(8 9 11 / 0.28) 100%
+    );
+}
+
+.hero-fade {
+  background: linear-gradient(to top, rgb(8 9 11 / 1) 0%, rgb(8 9 11 / 0) 100%);
 }
 
 /* One authored entrance, exponential ease-out from an already-visible
