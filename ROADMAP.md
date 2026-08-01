@@ -6,7 +6,7 @@ Demo project built to showcase full-stack skill (auth, database, RLS, external A
 
 ### Phase 1 — Foundation
 - [x] Next.js 15 (App Router) + TypeScript + Tailwind scaffold
-- [ ] Cloudflare domain → Vercel deploy pipeline verified with a blank page — *blocked: needs Vercel + Cloudflare accounts*
+- [x] Cloudflare domain → Vercel deploy pipeline verified with a blank page — live at [financial-demo.nyxiontech.com](https://financial-demo.nyxiontech.com)
 - [ ] Supabase project created, env vars wired — *blocked: needs Supabase account*
 
 Env vars are intentionally absent for now; `.env.example` documents every key the app
