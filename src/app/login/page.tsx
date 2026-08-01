@@ -1,35 +1,56 @@
-/**
- * Placeholder sign-in route. Present so the middleware has a real redirect
- * target and so the `next` round-trip can be verified. The designed auth
- * experience — email/password, Google OAuth, the three async states — is the
- * next piece of Phase 2 and gets built against the Phase 3 design tokens.
- */
+import Link from "next/link";
+import { AuthForm } from "@/components/auth/auth-form";
+import { signIn, signInWithGoogle } from "@/app/auth/actions";
+import { AuthShell, Notice } from "@/components/auth/auth-shell";
+
+export const metadata = { title: "Sign in — Financial Watchlist" };
+
+const CALLBACK_ERRORS: Record<string, string> = {
+  oauth: "Google sign-in couldn't be started. Try again, or use your email.",
+  missing_code: "That sign-in link is incomplete. Request a new one.",
+  exchange_failed:
+    "That sign-in link has expired or was already used. Request a new one.",
+};
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; checkEmail?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, error, checkEmail } = await searchParams;
 
   return (
-    <main className="roadmap flex min-h-screen flex-col justify-center px-6">
-      <div className="mx-auto w-full max-w-[26rem]">
-        <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
-          Financial Watchlist
-        </p>
-        <h1 className="mt-5 text-3xl font-medium tracking-tight">Sign in</h1>
-        <p className="mt-4 text-[0.95rem] leading-relaxed text-[var(--dim)]">
-          {next
-            ? "You need an account to view that page."
-            : "Email and Google sign-in arrive with the next commit."}
-        </p>
-        {next && (
-          <p className="mt-6 font-mono text-xs text-[var(--dim)]">
-            return to <span className="text-[var(--gold)]">{next}</span> after
-            signing in
-          </p>
-        )}
-      </div>
-    </main>
+    <AuthShell
+      title="Sign in"
+      lede={
+        next
+          ? "You'll need an account to see that page."
+          : "Pick up your watchlist where you left it."
+      }
+      footer={
+        <>
+          No account yet?{" "}
+          <Link href="/signup" className="text-[var(--gold)] hover:underline">
+            Create one
+          </Link>
+        </>
+      }
+    >
+      {checkEmail && (
+        <Notice tone="info">
+          Check your inbox for a confirmation link, then sign in.
+        </Notice>
+      )}
+      {error && CALLBACK_ERRORS[error] && (
+        <Notice tone="error">{CALLBACK_ERRORS[error]}</Notice>
+      )}
+
+      <AuthForm
+        mode="signin"
+        action={signIn}
+        googleAction={signInWithGoogle}
+        next={next ?? "/dashboard"}
+      />
+    </AuthShell>
   );
 }

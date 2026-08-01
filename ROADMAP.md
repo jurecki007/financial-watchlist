@@ -29,7 +29,7 @@ will need. Nothing in the scaffold reads them yet, so the build is green without
 - [x] **Add-on #2 delivered early**: 12 cross-user RLS isolation tests (`npm run test:rls`)
 - [x] Migrations applied to the remote project — pushed via `supabase db push`, history in sync, isolation suite re-run against production (12/12)
 - [x] Supabase SSR clients (browser / server / middleware split) — `getUser()` everywhere, never `getSession()`
-- [ ] Supabase Auth: email/password + Google OAuth
+- [x] Supabase Auth: email/password + Google OAuth — server actions, `/auth/callback` code exchange, open-redirect guard unit-tested
 - [x] Auth-gated routes (middleware redirect if not logged in) — route policy extracted and unit-tested, redirect verified against a running server
 
 Schema is verified against real Postgres — locally and against the deployed project. The
@@ -44,7 +44,7 @@ local-only testing cannot establish.
 
 First thing anyone sees — treated as a deliverable, not a placeholder. Direction:
 market-native dark, self-drawing gold candlestick hero. See "Design Direction" in `CLAUDE.md`.
-- [ ] Design tokens: type scale, spacing rhythm, colour (gold accent; green/red reserved for price only)
+- [x] Design tokens: colour system promoted to global scope (gold accent; green/red reserved for price only); type scale settles with the landing page
 - [ ] Capture `lib/fixtures/xau-daily.json` — one-time real XAU/USD pull, committed
 - [ ] Hero chart: progressive `series.update()` draw-in, dynamically imported, reduced-motion → final frame
 - [ ] Hero copy: headline, subhead, primary CTA (sign up) + secondary (live demo), server-rendered as LCP

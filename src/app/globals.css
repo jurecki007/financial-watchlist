@@ -1,60 +1,90 @@
 @import "tailwindcss";
 
-/* Placeholder tokens only. The real system — market-native dark, gold accent,
-   green/red reserved for price direction — is defined in Phase 3, where the
-   type scale and spacing rhythm get set against something rendered rather
-   than guessed at. See "Design Direction" in CLAUDE.md. */
+/* ===========================================================================
+   Market-native dark — the product's visual system.
+   See "Design Direction" in CLAUDE.md for the reasoning behind each choice.
+
+   Committed dark rather than following the system preference. The use scene
+   decides it: someone watching prices move, often for long stretches, in the
+   register every trading tool already uses. Instruments are not lit from
+   behind. Light mode is the secondary theme and arrives with the dashboard.
+
+   The rule that shapes everything: gold carries brand and structure, while
+   GREEN AND RED ARE RESERVED EXCLUSIVELY FOR PRICE DIRECTION. Nothing else
+   may use them — not success toasts, not validation, not "done" states. This
+   is what keeps a red field meaning one thing only. State that is not price
+   is carried by form, weight, and words instead, which is also what
+   colourblind readers need.
+   ========================================================================= */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Ground and ink */
+  --ground: #08090b;
+  --raised: #101216;
+  --fg: #ecedef;
+  /* 6.4:1 on --ground — secondary text never drops below the 4.5:1 floor */
+  --dim: #9a9ca1;
+  --faint: #6b6e74;
+
+  /* Brand. Metallic, not neon. */
+  --gold: #d9a441;
+  --gold-dim: #8a6a2b;
+
+  /* Price direction ONLY. */
+  --up: #3fb27f;
+  --down: #e2565f;
+
+  /* Structure */
+  --rule: #23262b;
+  --rule-strong: #333840;
+
+  --background: var(--ground);
+  --foreground: var(--fg);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ground: var(--ground);
+  --color-raised: var(--raised);
+  --color-fg: var(--fg);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+  --color-gold: var(--gold);
+  --color-gold-dim: var(--gold-dim);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--ground);
+  color: var(--fg);
   /* create-next-app hardcodes Arial here, which silently discards the Geist
      fonts loaded in layout.tsx. Use the variables the layout actually sets. */
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* --- /roadmap ------------------------------------------------------------
-   Committed dark rather than following the system preference. The use scene is
-   someone checking build state alongside the app itself, which is dark-led;
-   a ledger reads as an instrument, and instruments are not lit from behind.
-   These four values are the first of the market-native palette — Phase 3
-   formalises the full token set against rendered pages. */
-.roadmap {
-  --ground: #08090b;
-  --fg: #ecedef;
-  /* 6.4:1 on --ground; secondary text, never below the 4.5:1 floor */
-  --dim: #9a9ca1;
-  /* Metallic, not neon. Carries brand and structure; green and red stay
-     reserved for price direction so they mean one thing only. */
-  --gold: #d9a441;
-  --rule: #23262b;
+/* Focus is never removed, only restyled. Gold reads against the dark ground
+   at every surface depth. */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
 
+/* Kept so existing markup that opts a region into the dark ground keeps
+   working now that the tokens are global. */
+.roadmap {
   background: var(--ground);
   color: var(--fg);
 }
 
-/* The one authored moment: rules settle to their proportion, staggered down
-   the page like a tape printing. Width is already correct in the markup, so
-   this only scales what is there — nothing reflows and nothing is hidden
-   waiting for JS. */
+/* The tape: a hairline that fills to its proportion. Width is already correct
+   in the markup, so this only scales what is there — nothing reflows and
+   nothing is hidden waiting for JS. */
 .tape-fill {
   transform-origin: left center;
   animation: tape-settle 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -69,8 +99,26 @@ body {
   }
 }
 
+/* One authored entrance, exponential ease-out from an already-visible
+   default — content is readable even if the animation never runs. */
+.rise {
+  animation: rise 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tape-fill {
+  .tape-fill,
+  .rise {
     animation: none;
   }
 }

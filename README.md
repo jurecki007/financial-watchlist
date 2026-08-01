@@ -71,6 +71,16 @@ reads the JWT straight from the cookie without asking Supabase whether it is
 still valid, so on the server it will report a user for a forged or revoked
 token.
 
+Sign-in, sign-up and sign-out run as **server actions**, so the session cookie is
+written server-side in the request that establishes it and the redirect decision
+cannot be skipped by a client that fails to navigate. Google OAuth lands on
+`/auth/callback`, which exchanges the one-time code for a session.
+
+Post-auth destinations pass through `safeRedirectPath()`. An open redirect there
+is a real phishing primitive — it bounces a user off-site at the moment they have
+just typed a password. `//evil.com` is the case that catches people: it is
+protocol-relative, so a bare `startsWith("/")` treats it as local.
+
 Routes are gated in `middleware.ts` rather than per component. Per-component
 checks fail open — a new page that forgets the check is simply unprotected, and
 nothing tells you. The route policy lives in `src/lib/auth/routes.ts`, free of

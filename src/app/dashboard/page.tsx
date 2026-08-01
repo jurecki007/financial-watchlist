@@ -1,4 +1,5 @@
 import { getUser } from "@/lib/supabase/server";
+import { signOut } from "@/app/auth/actions";
 
 /**
  * Placeholder dashboard. Exists so the middleware gate has something real to
@@ -13,7 +14,7 @@ export default async function DashboardPage() {
   const user = await getUser();
 
   return (
-    <main className="roadmap min-h-screen px-6 py-20">
+    <main className="min-h-screen px-6 py-20">
       <div className="mx-auto max-w-[46rem]">
         <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
           Dashboard
@@ -26,6 +27,14 @@ export default async function DashboardPage() {
           <span className="font-mono text-[var(--gold)]">{user?.email}</span>.
           The watchlist itself arrives in Phase 5.
         </p>
+        <form action={signOut} className="mt-8">
+          <button
+            type="submit"
+            className="h-10 border border-[var(--rule-strong)] px-4 text-sm text-[var(--fg)] transition-colors hover:border-[var(--faint)] hover:bg-[var(--raised)]"
+          >
+            Sign out
+          </button>
+        </form>
       </div>
     </main>
   );

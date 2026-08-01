@@ -27,3 +27,28 @@ export function isProtected(pathname: string): boolean {
 export function isAuthRoute(pathname: string): boolean {
   return AUTH_ROUTES.includes(pathname);
 }
+
+/**
+ * Sanitises a post-authentication destination.
+ *
+ * An open redirect here is a real phishing primitive: a crafted
+ * `/login?next=//evil.com` bounces a user off-site at the exact moment they
+ * have just typed a password and are primed to trust what they see. Only
+ * plain, same-origin relative paths survive.
+ *
+ * `//evil.com` is the case worth naming — it is protocol-relative, so a bare
+ * `startsWith("/")` check treats it as local and hands the browser an
+ * absolute URL.
+ */
+export function safeRedirectPath(
+  value: unknown,
+  fallback = "/dashboard",
+): string {
+  if (typeof value !== "string" || value.length === 0) return fallback;
+  if (!value.startsWith("/")) return fallback;
+  if (value.startsWith("//")) return fallback;
+  // Backslashes are normalised to forward slashes by some browsers, so
+  // `/\evil.com` can escape the origin too.
+  if (value.startsWith("/\\")) return fallback;
+  return value;
+}
