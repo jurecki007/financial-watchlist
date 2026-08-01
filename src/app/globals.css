@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Placeholder tokens only. The real system — market-native dark, gold accent,
+   green/red reserved for price direction — is defined in Phase 3, where the
+   type scale and spacing rhythm get set against something rendered rather
+   than guessed at. See "Design Direction" in CLAUDE.md. */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* create-next-app hardcodes Arial here, which silently discards the Geist
+     fonts loaded in layout.tsx. Use the variables the layout actually sets. */
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
