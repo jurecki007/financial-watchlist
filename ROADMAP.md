@@ -5,9 +5,15 @@ Demo project built to showcase full-stack skill (auth, database, RLS, external A
 ## 🎯 MVP
 
 ### Phase 1 — Foundation
-- [x] Next.js 15 (App Router) + TypeScript + Tailwind scaffold
-- [x] Cloudflare domain → Vercel deploy pipeline verified with a blank page — live at [financial-demo.nyxiontech.com](https://financial-demo.nyxiontech.com)
-- [ ] Supabase project created, env vars wired — *blocked: needs Supabase account*
+- [x] Next.js 15 (App Router) + TypeScript + Tailwind scaffold — PR #1
+- [x] Cloudflare domain → Vercel deploy pipeline verified with a blank page — PR #2, live at [financial-demo.nyxiontech.com](https://financial-demo.nyxiontech.com)
+- [ ] Supabase project created, env vars wired — *waiting on the project ref; Maciej is creating it*
+
+Delivered alongside, not originally listed:
+- [x] Public repo hardened: pre-commit secret scan, CI (gitleaks + semgrep OWASP + `npm audit`), weekly sweep, GitHub push protection
+- [x] `main` protected — PR required, 4 status checks, linear history, admins included
+- [x] Baseline security headers in `next.config.ts` (CSP deferred to Phase 3, see README)
+- [x] Dependency `overrides` for the postcss/sharp advisories `create-next-app` ships with
 
 Env vars are intentionally absent for now; `.env.example` documents every key the app
 will need. Nothing in the scaffold reads them yet, so the build is green without them.

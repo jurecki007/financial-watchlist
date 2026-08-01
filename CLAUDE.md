@@ -88,6 +88,30 @@ news_cache        (ticker, article_json, fetched_at)
 - Environment variables: `TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only, never exposed to client).
 - Commit RLS policies as SQL migrations, not as changes made only through the Supabase dashboard — the migration history is itself part of the demo's story.
 
+## Working Practices
+
+**`main` is protected. Never commit to it directly.** Branch → push → PR → four Security
+checks green → rebase merge. Enforced for admins, so a direct push is rejected outright.
+Linear history is required, so rebase rather than merge-commit.
+
+**Keep the docs current in the same commit as the change.** `ROADMAP.md`, `README.md` and
+this file are part of the deliverable, not notes about it — a reviewer reads them as the
+project's own account of itself, and the `/roadmap` page renders `ROADMAP.md` directly.
+Before opening any PR, ask:
+
+- Did this complete, block, or add a roadmap item? → tick the box, or annotate why it's stuck.
+- Did this change setup, scripts, stack, or deploy behaviour? → `README.md`.
+- Did this establish a rule or a decision future work must follow? → this file.
+
+Docs drifting behind the code is the most common way a demo repo loses credibility: an
+unticked box next to working code reads as abandoned, and a ticked box next to nothing
+reads as dishonest. Neither is recoverable by a later cleanup commit, because the history
+is visible.
+
+**Verify security controls empirically.** Reading a guard proves nothing. Give it something
+it should catch and confirm it catches it — that method found three fail-open defects in
+these very scripts that eye review had missed.
+
 ## Definition of Done (MVP)
 
 All Phase 1–6 items in `ROADMAP.md` checked off, README written, deployed live on the custom domain via Vercel + Cloudflare.
