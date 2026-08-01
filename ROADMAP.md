@@ -75,13 +75,13 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Curated public view — only checkbox lines and add-on names are ever read, so build-strategy notes cannot reach the live page
 
 ### Phase 4 — Financial Data Integration
-- [ ] `lib/market-data/` provider interface + Twelve Data provider (quotes, time series, symbol search)
-- [ ] Finnhub provider (company news, fundamentals) behind the same interface — keys stay server-side
+- [x] `lib/market-data/` provider interface + Twelve Data provider (quotes, time series, symbol search)
+- [x] Finnhub provider (company news, fundamentals) behind the same interface — keys stay server-side
 - [x] Verify both free tiers against real keys before building UI on top of them — Twelve Data time_series + quote, Finnhub company-news + metrics all confirmed working
-- [ ] Response caching (`quote_cache` / `news_cache` table) to respect free-tier rate limits
-- [ ] Batched quote fetching (one comma-separated call per dashboard render, not one per card)
+- [x] Response caching (`quote_cache` / `news_cache` table) with stale-serve fallback
+- [x] Batched quote fetching — one request per render, and only for tickers whose cache is stale
 - [ ] Ticker search + autocomplete against Twelve Data's symbol search endpoint
-- [ ] Error taxonomy (`rate_limited` / `unavailable` / `not_entitled` / `not_found`) + stale-cache fallback
+- [x] Error taxonomy (`rate_limited` / `unavailable` / `not_entitled` / `not_found`) + stale-cache fallback
 
 ### Phase 5 — Watchlist Core
 - [ ] Add/remove company to watchlist (CRUD wired to Supabase)
