@@ -68,6 +68,12 @@ The suite was validated by deliberately rewriting two policies to `using (true)`
 confirming it failed. A test suite that cannot fail proves nothing, and RLS policies are
 unusually good at looking correct while being wrong.
 
+It runs against the deployed project as well as the local stack. Local-only testing proves
+the migrations are correct; running against production proves the policies that *shipped*
+are the policies that were tested. Point it anywhere by setting `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY`. It creates two throwaway users and
+deletes them in teardown.
+
 ## Notable decisions
 
 **Dependency overrides.** `create-next-app` ships `next@15.5.22` with `postcss@8.4.31` and
