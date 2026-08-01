@@ -1,0 +1,78 @@
+name: Security
+
+# Three triggers, three different jobs to do:
+#   push/PR   — gate every commit that lands (fast, blocking)
+#   schedule  — catch what was safe when written but isn't now (new CVEs,
+#               leaked-credential feeds updating). A weekly sweep of the FULL
+#               history, not just the new commits.
+#   dispatch  — manual re-run
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secrets:
+    name: Secret scan (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history — a secret committed and later "removed" is still
+          # in the objects and still readable on a public repo.
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  env-guard:
+    name: Env var guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No real secrets in tracked files
+        run: bash scripts/check-env-exposure.sh
+
+  sast:
+    name: OWASP / static analysis
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: semgrep (OWASP Top 10 + JS/TS + secrets)
+        run: |
+          semgrep scan \
+            --config p/owasp-top-ten \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/secrets \
+            --error \
+            --skip-unknown-extensions
+
+  deps:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if no package.json yet
+        id: check
+        run: |
+          if [ -f package.json ]; then echo "exists=true" >> "$GITHUB_OUTPUT";
+          else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.exists == 'true'
+        with:
+          node-version: 22
+      - name: npm audit
+        if: steps.check.outputs.exists == 'true'
+        run: npm audit --audit-level=high

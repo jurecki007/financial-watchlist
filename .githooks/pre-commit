@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Blocks secrets from entering history at all.
+#
+# This is the layer that actually matters. CI tells you a key leaked; the hook
+# stops it leaking. On a public repo, "we caught it in CI and force-pushed"
+# still means the key is burned.
+#
+# Enable with:  git config core.hooksPath .githooks
+# Bypass (deliberate, rare):  git commit --no-verify
+
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
+
+echo "→ pre-commit: scanning staged changes"
+
+FAILED=0
+
+# --- 1. Never allow a real env file to be staged ----------------------------
+staged_env=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '(^|/)\.env' | grep -v '\.env\.example$' || true)
+if [ -n "$staged_env" ]; then
+  printf '\033[31m✗ Refusing to commit env file(s):\033[0m\n' >&2
+  printf '    %s\n' $staged_env >&2
+  printf '  Unstage with: git restore --staged <file>\n' >&2
+  FAILED=1
+fi
+
+# --- 2. Credential shapes in the staged diff --------------------------------
+# Only the added lines (^+), so pre-existing content does not re-flag forever.
+added=$(git diff --cached --diff-filter=ACM -U0 -- . ':(exclude)scripts/check-env-exposure.sh' \
+  | grep -E '^\+' | grep -v '^+++' || true)
+
+if [ -n "$added" ]; then
+  patterns='eyJhbGciOi[A-Za-z0-9_-]{20,}|re_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|(api[_-]?key|secret|token|password)["'"'"']?\s*[:=]\s*["'"'"'][A-Za-z0-9/+_-]{24,}["'"'"']'
+  hits=$(printf '%s\n' "$added" | grep -InEi "$patterns" || true)
+  if [ -n "$hits" ]; then
+    printf '\033[31m✗ Possible credential in staged changes:\033[0m\n' >&2
+    printf '    %s\n' "$hits" >&2
+    FAILED=1
+  fi
+fi
+
+# --- 3. Full tracked-tree guard ---------------------------------------------
+if [ -x scripts/check-env-exposure.sh ]; then
+  bash scripts/check-env-exposure.sh >/dev/null 2>&1 || {
+    printf '\033[31m✗ scripts/check-env-exposure.sh failed — run it directly for detail.\033[0m\n' >&2
+    FAILED=1
+  }
+fi
+
+# --- 4. gitleaks, if available ----------------------------------------------
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner || FAILED=1
+else
+  echo "  (gitleaks not installed — CI covers it; 'brew install gitleaks' for local parity)"
+fi
+
+if [ "$FAILED" -ne 0 ]; then
+  printf '\n\033[31mCommit blocked.\033[0m Fix the above, or --no-verify if you are certain.\n' >&2
+  exit 1
+fi
+
+echo "✓ pre-commit checks passed"
