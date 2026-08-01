@@ -66,6 +66,9 @@
 }
 
 body {
+  /* Nothing in this design is wider than its container by intent, so a
+     horizontal scrollbar is always a bug. Catch it rather than ship it. */
+  overflow-x: hidden;
   background: var(--ground);
   color: var(--fg);
   /* create-next-app hardcodes Arial here, which silently discards the Geist
@@ -123,6 +126,37 @@ body {
 
 .hero-fade {
   background: linear-gradient(to top, rgb(8 9 11 / 1) 0%, rgb(8 9 11 / 0) 100%);
+}
+
+/* Anti-flash skeletons.
+   A server Suspense fallback is sent immediately, so a JS delay cannot help —
+   by the time a hook could run, the placeholder has already painted. Instead
+   the skeleton starts fully transparent and fades in at 200ms. When the real
+   content streams in faster than that, the placeholder is replaced before it
+   was ever visible: no flash, and no cost to a slow load, which still gets the
+   skeleton 200ms in.
+
+   The 400ms fade is the minimum-hold rule in a different form — once visible,
+   it is on screen long enough to read as loading rather than as a glitch. */
+.skeleton {
+  animation: skeleton-in 400ms ease-out 200ms both;
+}
+
+@keyframes skeleton-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    /* Still delayed, just not faded — the anti-flash behaviour is a timing
+       decision, not a decorative one, so it survives reduced motion. */
+    animation: skeleton-in 1ms linear 200ms both;
+  }
 }
 
 /* One authored entrance, exponential ease-out from an already-visible
