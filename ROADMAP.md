@@ -56,18 +56,18 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 
 **Shell**
 - [ ] App shell: nav, dashboard layout, dark-mode toggle
-- [ ] Loading / empty / error states as reusable components
+- [x] Loading / empty / error states as reusable components
 - [ ] Toast system (dismissible, deduplicated by error class, accessible via `aria-live`)
 
 **Loading experience** — the perceived-speed work. Decisions locked; see `CLAUDE.md`.
-- [ ] Stream the shell; one Suspense boundary per watchlist card + `loading.tsx` per segment, so a slow ticker never blocks the rest
-- [ ] Cache-first render: cached prices paint immediately with a quiet "refreshing" state — skeletons only on genuine cold load
+- [x] Stream the shell — prices sit in their own Suspense boundary so a rate-limited feed delays numbers, not the page
+- [x] Cache-first render with an `as of HH:MM` badge; stale values marked in gold rather than hidden
 - [ ] Anti-flash timing: ~200ms before a skeleton appears, ~400ms minimum once shown
-- [ ] Skeletons composed from the same layout primitives as the real components, so the two can't drift and the page can't lurch
-- [ ] Placeholders shaped like their data (digit-width price bars in the monospace numeral face)
-- [ ] Opacity pulse, not shimmer sweep; no animation at all under `prefers-reduced-motion`
+- [x] Skeletons composed from the same layout primitives as the real components
+- [x] Placeholders shaped like their data (digit-width `ch` units in the mono face)
+- [x] Opacity pulse, not shimmer sweep; no animation at all under `prefers-reduced-motion`
 - [ ] Hero chart draw-in *is* its loading state — no spinner, aspect-ratio box reserved for zero CLS
-- [ ] Search keeps previous results on screen while fetching; spinner sits inside the input
+- [x] Search keeps previous results on screen while fetching; spinner sits inside the input
 
 **`/roadmap` page**
 - [x] Public route rendering this file's phases and checkbox state, parsed from `ROADMAP.md` at build time — single source of truth, no hand-maintained duplicate
@@ -80,12 +80,12 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Verify both free tiers against real keys before building UI on top of them — Twelve Data time_series + quote, Finnhub company-news + metrics all confirmed working
 - [x] Response caching (`quote_cache` / `news_cache` table) with stale-serve fallback
 - [x] Batched quote fetching — one request per render, and only for tickers whose cache is stale
-- [ ] Ticker search + autocomplete against Twelve Data's symbol search endpoint
+- [x] Ticker search + autocomplete against Twelve Data's symbol search endpoint — debounced, request-aborted, results persist while refetching
 - [x] Error taxonomy (`rate_limited` / `unavailable` / `not_entitled` / `not_found`) + stale-cache fallback
 
 ### Phase 5 — Watchlist Core
-- [ ] Add/remove company to watchlist (CRUD wired to Supabase)
-- [ ] Dashboard: card per watched company — price, daily change, mini chart
+- [x] Add/remove company to watchlist (CRUD wired to Supabase) — no ownership clause in app code; RLS is the enforcement
+- [ ] Dashboard: card per watched company — price and daily change shipped; mini chart pending
 - [ ] Company detail page: full lightweight-charts candlestick/line chart, key stats (market cap, P/E, 52w range), recent news headlines
 
 ### Phase 6 — Polish Pass

@@ -1,40 +1,146 @@
-import { getUser } from "@/lib/supabase/server";
+import { Suspense } from "react";
+import Link from "next/link";
+import { getUser, createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
+import { getQuotes, FAILURE_COPY, type Quote } from "@/lib/market-data";
+import { QuoteCard, QuoteCardSkeleton } from "@/components/watchlist/quote-card";
+import { EmptyState, ErrorState } from "@/components/ui/states";
+import { AddTicker } from "@/components/watchlist/add-ticker";
+
+export const metadata = { title: "Dashboard — Financial Watchlist" };
+
+type Row = { id: string; ticker: string; company_name: string | null };
 
 /**
- * Placeholder dashboard. Exists so the middleware gate has something real to
- * protect and so the session round-trip is verifiable end to end. The actual
- * watchlist dashboard is Phase 5; the visual system it will inherit is Phase 3.
+ * Prices, in their own Suspense boundary.
  *
- * Note there is no auth check in this component. That is the point of rule 7 —
- * middleware guarantees a user is present before this renders, so pages do not
- * each re-implement a check they can forget.
+ * The shell — heading, the add control, and the ticker of every row — renders
+ * immediately from the database. Only prices wait on the market provider, so a
+ * slow or rate-limited feed delays the numbers rather than the page. The
+ * skeletons can already name which companies are loading, because the tickers
+ * come from Postgres and not from the quote call.
  */
-export default async function DashboardPage() {
-  const user = await getUser();
+async function Prices({ rows }: { rows: Row[] }) {
+  const result = await getQuotes(rows.map((r) => r.ticker));
+
+  if (!result.ok) {
+    const copy = FAILURE_COPY[result.reason];
+    return (
+      <>
+        <div className="sm:col-span-2 lg:col-span-3">
+          <ErrorState
+            title={copy.title}
+            body={copy.body}
+            retry={
+              result.retryable ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex h-8 items-center border border-[var(--rule-strong)] px-3 text-xs transition-colors hover:border-[var(--faint)]"
+                >
+                  Try again
+                </Link>
+              ) : undefined
+            }
+          />
+        </div>
+        {/* The companies are still known even when prices are not, so the grid
+            keeps its shape rather than collapsing to an error and nothing. */}
+        {rows.map((r) => (
+          <QuoteCard key={r.id} ticker={r.ticker} companyName={r.company_name} />
+        ))}
+      </>
+    );
+  }
+
+  const quotes: Record<string, Quote> = result.data;
 
   return (
-    <main className="min-h-screen px-6 py-20">
-      <div className="mx-auto max-w-[46rem]">
-        <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
-          Dashboard
+    <>
+      {rows.map((r) => (
+        <QuoteCard
+          key={r.id}
+          ticker={r.ticker}
+          companyName={r.company_name}
+          quote={quotes[r.ticker]}
+          asOf={result.asOf}
+          stale={result.stale}
+        />
+      ))}
+    </>
+  );
+}
+
+export default async function DashboardPage() {
+  const user = await getUser();
+  const supabase = await createClient();
+
+  // No user_id filter: RLS returns only this user's rows. tests/rls.test.ts
+  // proves that rather than this code assuming it.
+  const { data } = await supabase
+    .from("watchlist_items")
+    .select("id, ticker, company_name")
+    .order("added_at", { ascending: false });
+
+  const rows = (data ?? []) as Row[];
+
+  return (
+    <main className="min-h-screen px-6 py-10 sm:px-10">
+      <div className="mx-auto max-w-[62rem]">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
+              Watchlist
+            </p>
+            <h1 className="mt-3 text-2xl font-medium tracking-tight">
+              {rows.length
+                ? `${rows.length} ${rows.length === 1 ? "company" : "companies"}`
+                : "Your watchlist"}
+            </h1>
+          </div>
+          <div className="flex items-center gap-4 text-sm">
+            <Link
+              href="/roadmap"
+              className="text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
+            >
+              Roadmap
+            </Link>
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        </header>
+
+        <div className="mt-8 max-w-[26rem]">
+          <AddTicker />
+        </div>
+
+        <div className="mt-10">
+          {rows.length === 0 ? (
+            <EmptyState
+              title="Nothing tracked yet"
+              body="Search for a company above and add it. Prices, charts and news appear here once you do."
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Suspense
+                fallback={rows.map((r) => (
+                  <QuoteCardSkeleton key={r.id} ticker={r.ticker} />
+                ))}
+              >
+                <Prices rows={rows} />
+              </Suspense>
+            </div>
+          )}
+        </div>
+
+        <p className="mt-12 text-xs text-[var(--faint)]">
+          Signed in as {user?.email}
         </p>
-        <h1 className="mt-5 text-3xl font-medium tracking-tight">
-          Signed in
-        </h1>
-        <p className="mt-4 text-[0.95rem] leading-relaxed text-[var(--dim)]">
-          Session resolved server-side as{" "}
-          <span className="font-mono text-[var(--gold)]">{user?.email}</span>.
-          The watchlist itself arrives in Phase 5.
-        </p>
-        <form action={signOut} className="mt-8">
-          <button
-            type="submit"
-            className="h-10 border border-[var(--rule-strong)] px-4 text-sm text-[var(--fg)] transition-colors hover:border-[var(--faint)] hover:bg-[var(--raised)]"
-          >
-            Sign out
-          </button>
-        </form>
       </div>
     </main>
   );
