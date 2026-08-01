@@ -65,6 +65,19 @@ from Postgres; only prices sit inside a Suspense boundary, so a rate-limited fee
 delays the numbers rather than the page — and the skeletons can already name
 which companies are loading.
 
+## Company pages
+
+`/company/[ticker]` composes four independent sources into four Suspense
+boundaries. Fundamentals come from a different vendor than the chart, so one
+being rate-limited must not blank the other — that is the whole reason the page
+is composed this way rather than awaiting everything up front.
+
+The chart here **is** an instrument, so unlike the landing hero it ships the
+hover layer: crosshair plus an OHLC readout rendered beside the plot rather than
+floating over it, so it never covers the data it describes. The readout shows
+the latest bar until the pointer picks one, so the row never appears and
+disappears under the cursor.
+
 ## Market data
 
 `src/lib/market-data/` exposes `getQuotes`, `getCandles`, `searchSymbols`,

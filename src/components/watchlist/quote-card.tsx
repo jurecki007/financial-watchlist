@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { removeTicker } from "@/app/dashboard/actions";
 import { AsOf, NumberSkeleton, Skeleton } from "@/components/ui/states";
 import type { Quote } from "@/lib/market-data";
@@ -58,14 +59,17 @@ export function QuoteCard({
   return (
     <Frame>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <Link
+          href={`/company/${encodeURIComponent(ticker)}`}
+          className="min-w-0 transition-colors hover:text-[var(--gold)]"
+        >
           <p className="font-mono text-sm tracking-wide">{ticker}</p>
           {companyName && (
             <p className="mt-0.5 truncate text-xs text-[var(--dim)]">
               {companyName}
             </p>
           )}
-        </div>
+        </Link>
         {/* Remove is a form, not a link: it mutates, so it must not be a GET
             that a prefetcher could fire. */}
         <form action={removeTicker}>

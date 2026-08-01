@@ -85,8 +85,8 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 
 ### Phase 5 — Watchlist Core
 - [x] Add/remove company to watchlist (CRUD wired to Supabase) — no ownership clause in app code; RLS is the enforcement
-- [ ] Dashboard: card per watched company — price and daily change shipped; mini chart pending
-- [ ] Company detail page: full lightweight-charts candlestick/line chart, key stats (market cap, P/E, 52w range), recent news headlines
+- [x] Dashboard: card per watched company — price, daily change, links through to the detail page
+- [x] Company detail page: candlestick chart with crosshair + OHLC readout, key stats (market cap, P/E, 52w range), recent headlines — four independent Suspense boundaries
 
 ### Phase 6 — Polish Pass
 - [ ] Responsive check (mobile/tablet/desktop)
