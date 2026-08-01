@@ -42,10 +42,35 @@ Nothing reads the env vars yet, so the app builds and runs with `.env.local` emp
 | `npm run security` | env-exposure guard (same check CI runs) |
 | `npm run test:rls` | cross-user RLS isolation suite (needs `supabase start`) |
 | `npm run test:routes` | auth-gate coverage (no server needed) |
+| `npm run test:market` | market-data error classification |
 | `npm run test` | both suites |
 
 The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
 coexist with other Supabase projects on the same machine.
+
+## Market data
+
+`src/lib/market-data/` exposes `getQuotes`, `getCandles`, `searchSymbols`,
+`getFundamentals`, `getNews`. Callers import from there and never learn which
+vendor answered — which already changed once during this build.
+
+**Nothing in this layer throws.** A provider being rate-limited or down is an
+expected operating condition on a free tier, not an exception, and an exception
+thrown through a server component takes out the whole route. Failures are values
+(`{ ok: false, reason }`), so every caller is forced by the type system to decide
+what to render when data is absent.
+
+Twelve Data answers **HTTP 200 with an error object** rather than using status
+codes for its own failures, so a naive `res.ok` check reads a rate limit as
+success and produces `undefined` prices downstream. `twelveDataError()` handles
+that, and it is unit-tested precisely because it is the kind of mapping that rots
+silently.
+
+Reads are cache-first against `quote_cache` / `news_cache`. When a refresh fails
+but a stale row exists, the stale row is served and marked — on an 8-request-per-
+minute budget that happens routinely, and a four-minute-old price beats an error
+card. `asOf` always reports the **oldest** contributing timestamp, because
+"as of 14:32" has to be true of every number on screen.
 
 ## Charts and colour
 

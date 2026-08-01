@@ -1,0 +1,156 @@
+import { getJson, twelveDataError } from "../http.ts";
+import {
+  fail,
+  ok,
+  normalizeTicker,
+  type Candle,
+  type Quote,
+  type Result,
+  type SymbolMatch,
+} from "../types.ts";
+
+/**
+ * Twelve Data — quotes, historical OHLC, symbol search.
+ *
+ * Free tier: 800 credits/day, 8 per minute. The per-minute ceiling is the
+ * binding constraint and it shapes the whole interface: a twelve-ticker
+ * dashboard fetching one quote per card exceeds it on a single page load.
+ * Hence `getQuotes` takes an array and issues one request.
+ */
+
+const BASE = "https://api.twelvedata.com";
+
+const key = () => process.env.TWELVE_DATA_API_KEY ?? "";
+
+type RawQuote = {
+  symbol?: string;
+  name?: string;
+  close?: string;
+  change?: string;
+  percent_change?: string;
+  currency?: string;
+  status?: string;
+  code?: number;
+};
+
+function toQuote(raw: RawQuote): Quote | null {
+  const price = Number(raw.close);
+  if (!raw.symbol || !Number.isFinite(price)) return null;
+  return {
+    ticker: normalizeTicker(raw.symbol),
+    name: raw.name,
+    price,
+    change: Number(raw.change) || 0,
+    changePercent: Number(raw.percent_change) || 0,
+    currency: raw.currency,
+  };
+}
+
+/**
+ * One request for many symbols. Twelve Data returns a bare object for a single
+ * symbol and a keyed map for several, so both shapes are handled rather than
+ * assuming the array form.
+ */
+export async function getQuotes(
+  tickers: string[],
+): Promise<Result<Record<string, Quote>>> {
+  const symbols = [...new Set(tickers.map(normalizeTicker))].filter(Boolean);
+  if (symbols.length === 0) return ok({});
+
+  const url = `${BASE}/quote?symbol=${encodeURIComponent(symbols.join(","))}&apikey=${key()}`;
+  const res = await getJson<Record<string, RawQuote> | RawQuote>(url, {
+    label: "twelvedata/quote",
+  });
+  if (!res.ok) return res;
+
+  const err = twelveDataError(res.body);
+  if (err) return fail(err);
+
+  const out: Record<string, Quote> = {};
+  const body = res.body as Record<string, RawQuote> | RawQuote;
+
+  if (symbols.length === 1) {
+    const q = toQuote(body as RawQuote);
+    if (q) out[q.ticker] = q;
+  } else {
+    for (const [symbol, raw] of Object.entries(body as Record<string, RawQuote>)) {
+      // A single bad symbol in a batch comes back as a per-key error object.
+      // Skip it rather than failing the other eleven cards.
+      if (raw?.status === "error") continue;
+      const q = toQuote(raw);
+      if (q) out[normalizeTicker(symbol)] = q;
+    }
+  }
+
+  return ok(out);
+}
+
+type RawSeries = {
+  values?: { datetime: string; open: string; high: string; low: string; close: string }[];
+};
+
+export async function getCandles(
+  ticker: string,
+  { days = 180 }: { days?: number } = {},
+): Promise<Result<Candle[]>> {
+  const url = `${BASE}/time_series?symbol=${encodeURIComponent(
+    normalizeTicker(ticker),
+  )}&interval=1day&outputsize=${days}&apikey=${key()}`;
+
+  const res = await getJson<RawSeries>(url, { label: "twelvedata/time_series" });
+  if (!res.ok) return res;
+
+  const err = twelveDataError(res.body);
+  if (err) return fail(err);
+
+  const values = res.body.values ?? [];
+  if (values.length === 0) return fail("not_found");
+
+  // Twelve Data returns newest-first; charting libraries require ascending
+  // time and will render silently wrong rather than erroring if given the
+  // reverse, so the sort is not optional.
+  const candles = values
+    .map((v) => ({
+      time: v.datetime,
+      open: Number(v.open),
+      high: Number(v.high),
+      low: Number(v.low),
+      close: Number(v.close),
+    }))
+    .filter((c) => Number.isFinite(c.close))
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  return ok(candles);
+}
+
+type RawSearch = {
+  data?: {
+    symbol: string;
+    instrument_name: string;
+    exchange?: string;
+    country?: string;
+  }[];
+};
+
+export async function searchSymbols(
+  query: string,
+): Promise<Result<SymbolMatch[]>> {
+  const q = query.trim();
+  if (q.length === 0) return ok([]);
+
+  const url = `${BASE}/symbol_search?symbol=${encodeURIComponent(q)}&outputsize=12`;
+  const res = await getJson<RawSearch>(url, { label: "twelvedata/symbol_search" });
+  if (!res.ok) return res;
+
+  const err = twelveDataError(res.body);
+  if (err) return fail(err);
+
+  return ok(
+    (res.body.data ?? []).map((d) => ({
+      ticker: normalizeTicker(d.symbol),
+      name: d.instrument_name,
+      exchange: d.exchange,
+      country: d.country,
+    })),
+  );
+}
