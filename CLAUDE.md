@@ -58,6 +58,19 @@ Do not substitute libraries in this list without asking first — the stack itse
 
 Exact type scale, spacing rhythm, and colour tokens get defined when Phase 3 is built — not guessed at here.
 
+## Loading Behaviour
+
+Perceived speed is a design surface, not a side effect. Rules, in priority order:
+
+1. **Stream the shell; suspend per unit of data.** Nav and layout render immediately. Each watchlist card gets its own Suspense boundary so one slow ticker can't hold up eleven others, and each route segment gets a `loading.tsx`.
+2. **A skeleton means "we have nothing," and we usually have something.** Cache-first means a returning user's prices are already in `quote_cache` — paint them instantly with a quiet refreshing state. Skeletons are for genuine cold loads only. This is the same mechanism as the stale-serve rule in architecture rule 8: `as of 14:32` → refresh → the number ticks over.
+3. **Never let a skeleton flash.** Wait ~200ms before showing one (a cache hit beats it and the user sees no placeholder at all), then hold it ~400ms minimum. A placeholder that appears for 80ms reads as a glitch, not as speed.
+4. **Skeletons are built from the real component's layout primitives**, never hand-sized. If the placeholder and the loaded card disagree on dimensions the page lurches, and hand-sized skeletons always drift as the component evolves.
+5. **Placeholders take the shape of their data** — a price skeleton is digit-width in the monospace numeral face, not a full-width bar.
+6. **Opacity pulse, never a shimmer sweep.** Shimmer is a consumer-app tic and fights the market-native restraint. Under `prefers-reduced-motion`, placeholders are entirely static.
+7. **The hero chart's draw-in is its loading state.** No spinner precedes it, and its container is aspect-ratio-reserved so nothing shifts when the chart JS lands.
+8. **Search never blanks its results.** Previous matches stay on screen while the next query resolves; the pending indicator lives inside the input.
+
 ## Data Model
 
 ```

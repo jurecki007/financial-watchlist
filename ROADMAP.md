@@ -35,6 +35,16 @@ Direction: market-native dark, self-drawing gold candlestick hero. See "Design D
 - [ ] Loading / empty / error states as reusable components
 - [ ] Toast system (dismissible, deduplicated by error class, accessible via `aria-live`)
 
+**Loading experience** — the perceived-speed work. Decisions locked; see `CLAUDE.md`.
+- [ ] Stream the shell; one Suspense boundary per watchlist card + `loading.tsx` per segment, so a slow ticker never blocks the rest
+- [ ] Cache-first render: cached prices paint immediately with a quiet "refreshing" state — skeletons only on genuine cold load
+- [ ] Anti-flash timing: ~200ms before a skeleton appears, ~400ms minimum once shown
+- [ ] Skeletons composed from the same layout primitives as the real components, so the two can't drift and the page can't lurch
+- [ ] Placeholders shaped like their data (digit-width price bars in the monospace numeral face)
+- [ ] Opacity pulse, not shimmer sweep; no animation at all under `prefers-reduced-motion`
+- [ ] Hero chart draw-in *is* its loading state — no spinner, aspect-ratio box reserved for zero CLS
+- [ ] Search keeps previous results on screen while fetching; spinner sits inside the input
+
 **`/roadmap` page**
 - [ ] Public route rendering this file's phases and checkbox state, parsed from `ROADMAP.md` at build time — single source of truth, no hand-maintained duplicate
 - [ ] Per-phase progress bars + overall completion

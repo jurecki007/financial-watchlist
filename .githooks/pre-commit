@@ -43,11 +43,17 @@ if [ -n "$added" ]; then
 fi
 
 # --- 3. Full tracked-tree guard ---------------------------------------------
-if [ -x scripts/check-env-exposure.sh ]; then
+# Fail closed: a missing guard script means the check did not run, which is not
+# the same as passing. Previously this was silently skipped if absent, so
+# deleting the script disabled the control without any signal.
+if [ -f scripts/check-env-exposure.sh ]; then
   bash scripts/check-env-exposure.sh >/dev/null 2>&1 || {
-    printf '\033[31m✗ scripts/check-env-exposure.sh failed — run it directly for detail.\033[0m\n' >&2
+    printf '\033[31m✗ scripts/check-env-exposure.sh reported a problem — run it directly for detail.\033[0m\n' >&2
     FAILED=1
   }
+else
+  printf '\033[31m✗ scripts/check-env-exposure.sh is missing — the env guard did not run.\033[0m\n' >&2
+  FAILED=1
 fi
 
 # --- 4. gitleaks, if available ----------------------------------------------

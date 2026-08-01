@@ -14,9 +14,11 @@ on:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
 
+# Least privilege at the top: read-only for everything. The one job that needs
+# to write findings re-grants it for itself only, so a compromised action in the
+# other three jobs cannot publish to the security tab.
 permissions:
   contents: read
-  security-events: write
 
 # Actions are pinned to commit SHAs, not tags. A tag like @v4 is mutable — the
 # action's owner (or anyone who compromises that repo) can repoint it at new
@@ -27,6 +29,9 @@ jobs:
   secrets:
     name: Secret scan (full history)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

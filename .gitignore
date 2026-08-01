@@ -27,16 +27,21 @@ next-env.d.ts
 .DS_Store
 *.pem
 
+# local agent tooling — third-party skill content of unstated licence;
+# not ours to redistribute from a public repo
+.claude/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — never commit real keys
-.env
-.env*.local
-.env.production
+# env files — never commit real keys.
+# Deny-by-default: ignore every .env* variant, then re-admit only the template.
+# An explicit list missed .env.development / .env.test / .env.staging, which
+# Next.js loads and developers do create.
+.env*
 !.env.example
 
 # vercel

@@ -13,6 +13,20 @@ set -uo pipefail
 SELF="scripts/check-env-exposure.sh"
 FAILED=0
 
+# Fail closed. Every check below derives its file list from git, so if git is
+# unavailable or this is not a repo, `git ls-files` returns nothing, every check
+# finds nothing, and the script cheerfully reports success while a secret sits
+# on disk. A security control that passes when it cannot run is worse than none:
+# it manufactures confidence. Refuse to report a verdict we cannot support.
+if ! command -v git >/dev/null 2>&1; then
+  printf '\033[31m✗ git not found — cannot determine which files are tracked.\033[0m\n' >&2
+  exit 1
+fi
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  printf '\033[31m✗ Not inside a git work tree — refusing to report a pass.\033[0m\n' >&2
+  exit 1
+fi
+
 fail() {
   printf '\033[31m✗ %s\033[0m\n' "$1" >&2
   FAILED=1
