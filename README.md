@@ -219,6 +219,52 @@ Response headers set in [`next.config.ts`](next.config.ts): `X-Frame-Options`,
 `Referrer-Policy` is the load-bearing one here — a full-URL referrer would leak routes like
 `/company/AAPL` to linked-out news publishers, disclosing a user's private watchlist.
 
+## Architecture, and why
+
+**Two market-data providers, one interface.** Neither free tier covers the whole
+surface: Finnhub gates historical candles behind a paid plan, Twelve Data gates
+news and fundamentals. Rather than paywalling two features or paying for one
+vendor, both sit behind `lib/market-data/` and callers never learn which
+answered. Verified against live keys — nothing the product needs is paywalled.
+
+**Failures are values, not exceptions.** On a free tier, being rate-limited is
+an operating condition rather than an error, and an exception thrown through a
+server component takes out the route. Four classes — `rate_limited`,
+`unavailable`, `not_entitled`, `not_found` — each with fixed copy and a
+`retryable` flag, so the UI never offers a retry that cannot succeed.
+
+**Serve stale before erroring.** With 8 requests a minute available, refresh
+failures are routine. A cached price with an honest `as of 14:32` badge beats an
+error card, and being explicit about age is exactly what licenses showing it.
+
+**Transient → toast, persistent → inline.** A failed background refresh leaves
+data on screen and raises a dismissible toast; a failure with nothing to fall
+back on renders where the content would have been. Toasts deduplicate by cause,
+because twelve cards failing on one rate limit is one event.
+
+**RLS is the authorization boundary.** No server action contains a
+`where user_id = ...` clause. The database decides, and 12 tests hold two real
+sessions and try to cross between them to prove it.
+
+**Colour is validated, not chosen.** The obvious green/red price pair failed
+colourblind separation at ΔE 5.1; the shipped pair scores 10.7, and candles also
+encode direction as filled versus hollow so the signal survives colour entirely.
+
+### Things found by running the code rather than reading it
+
+Each of these passed review, type-checking and lint while being wrong:
+
+- Tailwind opacity modifiers silently do nothing on arbitrary CSS variables, so
+  the hero scrim rendered fully transparent
+- `lightweight-charts` positions canvases absolutely and painted over that scrim
+  regardless of DOM order
+- Quote caching wrote and read correctly but never propagated `asOf`, so the
+  "as of" badge could never have appeared
+- Twelve Data answers HTTP 200 with an error body, so a `res.ok` check reads a
+  rate limit as success
+- Three fail-open defects in the secret-scanning scripts, found by planting a
+  fake key rather than by reading them
+
 ## Licence
 
 MIT

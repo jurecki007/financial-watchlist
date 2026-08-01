@@ -57,7 +57,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 **Shell**
 - [ ] App shell: nav, dashboard layout, dark-mode toggle
 - [x] Loading / empty / error states as reusable components
-- [ ] Toast system (dismissible, deduplicated by error class, accessible via `aria-live`)
+- [x] Toast system (dismissible, deduplicated by error class, accessible via `aria-live`)
 
 **Loading experience** — the perceived-speed work. Decisions locked; see `CLAUDE.md`.
 - [x] Stream the shell — prices sit in their own Suspense boundary so a rate-limited feed delays numbers, not the page
@@ -91,8 +91,8 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 ### Phase 6 — Polish Pass
 - [ ] Responsive check (mobile/tablet/desktop)
 - [ ] Skeleton loaders on all async data
-- [ ] Fault-injection pass: force each error class (429, 5xx, 403, bad ticker) and confirm the app degrades instead of breaking
-- [ ] README with architecture + decisions
+- [x] Fault-injection pass — `not_entitled` and `not_found` forced live with real invalid credentials; `rate_limited` and `unavailable` covered by unit tests rather than by burning the daily budget
+- [x] README with architecture + decisions
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 

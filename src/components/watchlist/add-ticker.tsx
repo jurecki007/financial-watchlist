@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addTicker, type WatchlistState } from "@/app/dashboard/actions";
 import type { SymbolMatch } from "@/lib/market-data";
+import { useToast } from "@/components/ui/toast";
 
 /**
  * Ticker search and add.
@@ -23,6 +24,9 @@ export function AddTicker() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const { push } = useToast();
+  // Read inside the debounce callback without making it a dependency.
+  const matchesRef = useRef<SymbolMatch[]>([]);
 
   const [state, formAction, pending] = useActionState<WatchlistState, FormData>(
     addTicker,
@@ -49,17 +53,36 @@ export function AddTicker() {
           signal: controller.signal,
         });
         if (!res.ok) {
-          // Keep whatever is on screen; say the search failed rather than
-          // pretending there were no results, which is a different claim.
-          setSearchError("Search is unavailable right now.");
+          // Results already on screen stay; the failure is transient, so it
+          // goes to a toast rather than replacing what the user is reading.
+          // Keyed by status so a burst of 429s is reported once.
+          push({
+            key: `search-${res.status}`,
+            title:
+              res.status === 429
+                ? "Refreshing shortly"
+                : "Search is unavailable",
+            body:
+              res.status === 429
+                ? "We're searching faster than our data feed allows. Try again in a moment."
+                : "Our market data provider isn't responding right now.",
+          });
+          if (matchesRef.current.length === 0) {
+            setSearchError("Search is unavailable right now.");
+          }
           return;
         }
         const body = (await res.json()) as { matches: SymbolMatch[] };
+        matchesRef.current = body.matches ?? [];
         setMatches(body.matches ?? []);
         setSearchError(null);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          setSearchError("Search is unavailable right now.");
+          push({
+            key: "search-network",
+            title: "Search is unavailable",
+            body: "Check your connection and try again.",
+          });
         }
       } finally {
         if (!controller.signal.aborted) setSearching(false);
@@ -67,7 +90,7 @@ export function AddTicker() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, push]);
 
   return (
     <div>
