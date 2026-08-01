@@ -23,10 +23,18 @@ Env vars are intentionally absent for now; `.env.example` documents every key th
 will need. Nothing in the scaffold reads them yet, so the build is green without them.
 
 ### Phase 2 — Auth & Data Layer
+- [x] `profiles` table with auto-create trigger on signup
+- [x] `watchlist_items` table with RLS (`user_id = auth.uid()` on all ops)
+- [x] `price_alerts`, `quote_cache`, `news_cache` — full data model migrated ahead of schedule
+- [x] **Add-on #2 delivered early**: 12 cross-user RLS isolation tests (`npm run test:rls`)
+- [ ] Migrations applied to the remote project — *blocked: CLI account can't reach `fsboxdlbncegnhcjniaf`, needs a `SUPABASE_ACCESS_TOKEN`*
+- [ ] Supabase SSR clients (browser / server / middleware split)
 - [ ] Supabase Auth: email/password + Google OAuth
-- [ ] `profiles` table with auto-create trigger on signup
-- [ ] `watchlist_items` table with RLS (`user_id = auth.uid()` on all ops)
 - [ ] Auth-gated routes (middleware redirect if not logged in)
+
+Schema is verified against real Postgres via the local stack, not just written. The
+isolation suite was itself validated by deliberately breaking two policies and confirming
+the tests failed — a suite that cannot fail proves nothing.
 
 ### Phase 3 — Landing + Shell
 
@@ -92,7 +100,7 @@ Direction: market-native dark, self-drawing gold candlestick hero. See "Design D
 | # | Add-on | Effort | Impact |
 |---|---|---|---|
 | 1 | Price alerts (threshold-based) + Resend email via scheduled edge function | Medium | High — async/event-driven thinking |
-| 2 | RLS tests (2–3 automated tests proving cross-user isolation) | Low | High — rarely done, strong signal |
+| 2 | ~~RLS tests (2–3 automated tests proving cross-user isolation)~~ **done in Phase 2 — 12 tests** | Low | High — rarely done, strong signal |
 | 3 | Search debounce + polished autocomplete UX | Low | Medium |
 | 4 | Optimistic UI on watchlist add/remove | Low | Medium |
 | 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) | Medium | Medium |

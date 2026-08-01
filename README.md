@@ -40,6 +40,33 @@ Nothing reads the env vars yet, so the app builds and runs with `.env.local` emp
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | eslint |
 | `npm run security` | env-exposure guard (same check CI runs) |
+| `npm run test:rls` | cross-user RLS isolation suite (needs `supabase start`) |
+
+The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
+coexist with other Supabase projects on the same machine.
+
+## Database
+
+Schema lives in [`supabase/migrations/`](supabase/migrations/) and is applied with
+`supabase db reset` locally. Every user-owned table has RLS enabled with four policies —
+one per operation rather than a single `FOR ALL` — because `FOR ALL` makes it easy to get
+`USING` right and forget `WITH CHECK`, which would let a user write rows into someone
+else's account while only being able to read their own.
+
+`quote_cache` and `news_cache` have RLS enabled and **zero** policies. That is deliberate:
+RLS denies by default, so they are unreachable by anything holding the publishable key.
+Only server route handlers, using the secret key, can touch them. A browser able to read
+the cache could enumerate every ticker the entire user base follows.
+
+### RLS is tested, not assumed
+
+`npm run test:rls` holds two real sessions and tries to cross between them — 12 tests
+covering reads, inserts against `WITH CHECK`, updates, deletes, row reassignment, cache
+visibility, and anonymous access. Every test asserts the *denied* case.
+
+The suite was validated by deliberately rewriting two policies to `using (true)` and
+confirming it failed. A test suite that cannot fail proves nothing, and RLS policies are
+unusually good at looking correct while being wrong.
 
 ## Notable decisions
 

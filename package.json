@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "security": "bash scripts/check-env-exposure.sh"
+    "security": "bash scripts/check-env-exposure.sh",
+    "test:rls": "bash scripts/run-rls-tests.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
