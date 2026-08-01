@@ -41,6 +41,8 @@ Nothing reads the env vars yet, so the app builds and runs with `.env.local` emp
 | `npm run lint` | eslint |
 | `npm run security` | env-exposure guard (same check CI runs) |
 | `npm run test:rls` | cross-user RLS isolation suite (needs `supabase start`) |
+| `npm run test:routes` | auth-gate coverage (no server needed) |
+| `npm run test` | both suites |
 
 The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
 coexist with other Supabase projects on the same machine.
@@ -57,6 +59,22 @@ else's account while only being able to read their own.
 RLS denies by default, so they are unreachable by anything holding the publishable key.
 Only server route handlers, using the secret key, can touch them. A browser able to read
 the cache could enumerate every ticker the entire user base follows.
+
+## Auth
+
+Three Supabase clients, one per execution context: browser, server, middleware.
+All three carry only the publishable key — the server client holds the *user's*
+session, not admin rights, so RLS applies identically everywhere.
+
+Every access decision uses `getUser()`, never `getSession()`. `getSession()`
+reads the JWT straight from the cookie without asking Supabase whether it is
+still valid, so on the server it will report a user for a forged or revoked
+token.
+
+Routes are gated in `middleware.ts` rather than per component. Per-component
+checks fail open — a new page that forgets the check is simply unprotected, and
+nothing tells you. The route policy lives in `src/lib/auth/routes.ts`, free of
+Next imports so it can be unit-tested without booting the framework.
 
 ### RLS is tested, not assumed
 

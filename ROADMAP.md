@@ -28,9 +28,9 @@ will need. Nothing in the scaffold reads them yet, so the build is green without
 - [x] `price_alerts`, `quote_cache`, `news_cache` — full data model migrated ahead of schedule
 - [x] **Add-on #2 delivered early**: 12 cross-user RLS isolation tests (`npm run test:rls`)
 - [x] Migrations applied to the remote project — pushed via `supabase db push`, history in sync, isolation suite re-run against production (12/12)
-- [ ] Supabase SSR clients (browser / server / middleware split)
+- [x] Supabase SSR clients (browser / server / middleware split) — `getUser()` everywhere, never `getSession()`
 - [ ] Supabase Auth: email/password + Google OAuth
-- [ ] Auth-gated routes (middleware redirect if not logged in)
+- [x] Auth-gated routes (middleware redirect if not logged in) — route policy extracted and unit-tested, redirect verified against a running server
 
 Schema is verified against real Postgres — locally and against the deployed project. The
 isolation suite was itself validated by deliberately breaking two policies and confirming

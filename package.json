@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "security": "bash scripts/check-env-exposure.sh",
-    "test:rls": "bash scripts/run-rls-tests.sh"
+    "test:rls": "bash scripts/run-rls-tests.sh",
+    "test:routes": "node --test tests/route-protection.test.ts",
+    "test": "npm run test:routes && npm run test:rls"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
