@@ -13,7 +13,7 @@ Demo project built to showcase full-stack skill (auth, database, RLS, external A
 - Vercel environment variables still need adding (nothing reads them until Phase 2)
 - Google OAuth is not yet enabled on the Supabase project — needs a Google Cloud Console client, done in Phase 2
 
-Delivered alongside, not originally listed:
+**Delivered alongside, not originally planned**
 - [x] Public repo hardened: pre-commit secret scan, CI (gitleaks + semgrep OWASP + `npm audit`), weekly sweep, GitHub push protection
 - [x] `main` protected — PR required, 4 status checks, linear history, admins included
 - [x] Baseline security headers in `next.config.ts` (CSP deferred to Phase 3, see README)
@@ -40,9 +40,10 @@ local-only testing cannot establish.
 
 ### Phase 3 — Landing + Shell
 
-**Landing page** (first thing a reviewer sees — treat as a deliverable, not a placeholder)
+**Landing page**
 
-Direction: market-native dark, self-drawing gold candlestick hero. See "Design Direction" in `CLAUDE.md`.
+First thing anyone sees — treated as a deliverable, not a placeholder. Direction:
+market-native dark, self-drawing gold candlestick hero. See "Design Direction" in `CLAUDE.md`.
 - [ ] Design tokens: type scale, spacing rhythm, colour (gold accent; green/red reserved for price only)
 - [ ] Capture `lib/fixtures/xau-daily.json` — one-time real XAU/USD pull, committed
 - [ ] Hero chart: progressive `series.update()` draw-in, dynamically imported, reduced-motion → final frame
@@ -69,9 +70,9 @@ Direction: market-native dark, self-drawing gold candlestick hero. See "Design D
 - [ ] Search keeps previous results on screen while fetching; spinner sits inside the input
 
 **`/roadmap` page**
-- [ ] Public route rendering this file's phases and checkbox state, parsed from `ROADMAP.md` at build time — single source of truth, no hand-maintained duplicate
-- [ ] Per-phase progress bars + overall completion
-- [ ] Curated public view (see note below)
+- [x] Public route rendering this file's phases and checkbox state, parsed from `ROADMAP.md` at build time — single source of truth, no hand-maintained duplicate
+- [x] Per-phase completion and an overall figure
+- [x] Curated public view — only checkbox lines and add-on names are ever read, so build-strategy notes cannot reach the live page
 
 ### Phase 4 — Financial Data Integration
 - [ ] `lib/market-data/` provider interface + Twelve Data provider (quotes, time series, symbol search)
@@ -102,7 +103,7 @@ Direction: market-native dark, self-drawing gold candlestick hero. See "Design D
 | # | Add-on | Effort | Impact |
 |---|---|---|---|
 | 1 | Price alerts (threshold-based) + Resend email via scheduled edge function | Medium | High — async/event-driven thinking |
-| 2 | ~~RLS tests (2–3 automated tests proving cross-user isolation)~~ **done in Phase 2 — 12 tests** | Low | High — rarely done, strong signal |
+| 2 | ~~RLS tests proving cross-user isolation — 12 shipped in Phase 2~~ | Low | High — rarely done, strong signal |
 | 3 | Search debounce + polished autocomplete UX | Low | Medium |
 | 4 | Optimistic UI on watchlist add/remove | Low | Medium |
 | 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) | Medium | Medium |
