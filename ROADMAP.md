@@ -27,14 +27,16 @@ will need. Nothing in the scaffold reads them yet, so the build is green without
 - [x] `watchlist_items` table with RLS (`user_id = auth.uid()` on all ops)
 - [x] `price_alerts`, `quote_cache`, `news_cache` — full data model migrated ahead of schedule
 - [x] **Add-on #2 delivered early**: 12 cross-user RLS isolation tests (`npm run test:rls`)
-- [ ] Migrations applied to the remote project — *blocked: CLI account can't reach `fsboxdlbncegnhcjniaf`, needs a `SUPABASE_ACCESS_TOKEN`*
+- [x] Migrations applied to the remote project — pushed via `supabase db push`, history in sync, isolation suite re-run against production (12/12)
 - [ ] Supabase SSR clients (browser / server / middleware split)
 - [ ] Supabase Auth: email/password + Google OAuth
 - [ ] Auth-gated routes (middleware redirect if not logged in)
 
-Schema is verified against real Postgres via the local stack, not just written. The
+Schema is verified against real Postgres — locally and against the deployed project. The
 isolation suite was itself validated by deliberately breaking two policies and confirming
-the tests failed — a suite that cannot fail proves nothing.
+the tests failed; a suite that cannot fail proves nothing. Running it against production
+proves the policies that shipped are the policies that were tested, which is the part
+local-only testing cannot establish.
 
 ### Phase 3 — Landing + Shell
 
