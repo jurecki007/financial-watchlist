@@ -48,6 +48,23 @@ Nothing reads the env vars yet, so the app builds and runs with `.env.local` emp
 The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
 coexist with other Supabase projects on the same machine.
 
+## Watchlist
+
+Add and remove are server actions. What is **absent** from them is the point:
+there is no `where user_id = ...` clause anywhere. RLS enforces ownership at the
+database, so the actions run as the signed-in user and the policies decide what
+they may touch. An application-layer filter would be a second, weaker copy of a
+rule that already exists — and the copy is the one that drifts.
+
+`user_id` is still set explicitly on insert, because the INSERT policy's
+`WITH CHECK` compares against it: the row has to claim an owner for the database
+to verify the claim.
+
+The dashboard streams. Heading, the add control and every ticker render straight
+from Postgres; only prices sit inside a Suspense boundary, so a rate-limited feed
+delays the numbers rather than the page — and the skeletons can already name
+which companies are loading.
+
 ## Market data
 
 `src/lib/market-data/` exposes `getQuotes`, `getCandles`, `searchSymbols`,
