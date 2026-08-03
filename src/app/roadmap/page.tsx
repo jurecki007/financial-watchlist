@@ -21,8 +21,14 @@
  */
 import type { Metadata } from "next";
 import { loadRoadmap, type Item, type Phase } from "@/lib/roadmap";
+import { Nav } from "@/components/nav";
 
-export const dynamic = "force-static";
+// Deliberately NOT force-static. The nav is session-aware, and a page
+// prerendered at build time has no request to read identity or pathname from —
+// a signed-in visitor was shown "Sign in". The roadmap content still comes
+// from a file read, so rendering per request costs a filesystem hit, not a
+// network one.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Roadmap — Financial Watchlist",
@@ -187,13 +193,12 @@ export default function RoadmapPage() {
   const pct = Math.round((roadmap.shipped / roadmap.total) * 100);
 
   return (
-    <main className="roadmap min-h-screen px-6 pb-32">
+    <>
+      <Nav />
+      <main className="roadmap min-h-screen px-6 pb-32">
       <div className="mx-auto max-w-[46rem]">
-        <header className="pt-20">
-          <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
-            Financial Watchlist
-          </p>
-          <h1 className="mt-5 text-balance text-3xl leading-[1.2] font-medium tracking-tight sm:text-[2.5rem]">
+        <header className="pt-14">
+          <h1 className=" text-balance text-3xl leading-[1.2] font-medium tracking-tight sm:text-[2.5rem]">
             What is built, what is not, and what the rest is waiting on.
           </h1>
           <p className="mt-5 max-w-[38rem] text-[0.95rem] leading-relaxed break-words text-[var(--dim)]">
@@ -261,6 +266,7 @@ export default function RoadmapPage() {
           </a>
         </footer>
       </div>
-    </main>
+      </main>
+    </>
   );
 }

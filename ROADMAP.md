@@ -55,7 +55,8 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Accessibility pass — global `:focus-visible` ring, reduced-motion honoured throughout, colourblind-safe deltas (validated ΔE 10.7 plus filled/hollow candles), `aria-live` on toasts and search status, semantic landmarks. *Contrast verified by calculation, not yet by an automated audit run.*
 
 **Shell**
-- [ ] App shell: nav and dark-mode toggle — dashboard layout is done; the toggle needs a light theme, which the design direction defers behind dark
+- [x] App shell: shared nav across dashboard, company and roadmap, with active-route state and a signed-out variant
+- [ ] Dark-mode toggle — needs a light theme, which the design direction defers behind dark
 - [x] Loading / empty / error states as reusable components
 - [x] Toast system (dismissible, deduplicated by error class, accessible via `aria-live`)
 

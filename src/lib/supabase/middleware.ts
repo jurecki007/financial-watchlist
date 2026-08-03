@@ -56,12 +56,21 @@ export async function updateSession(request: NextRequest) {
   // to repeat the round-trip. Forwarding the result removes one of the three
   // getUser calls a single button click used to cost. Set unconditionally —
   // including to empty — so an inbound forged header is always overwritten.
+  const { pathname } = request.nextUrl;
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-user-id", user?.id ?? "");
   requestHeaders.set("x-user-email", user?.email ?? "");
-  supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
+  // Server components cannot read the current path. Forwarding it here means
+  // the nav can highlight the active route without every page passing it down.
+  requestHeaders.set("x-pathname", pathname);
 
-  const { pathname } = request.nextUrl;
+  // Rebuilding the response to attach these headers would DISCARD any cookies
+  // setAll() wrote while refreshing the token — silently signing the user out
+  // on the next request. Carry them across explicitly.
+  const withHeaders = NextResponse.next({ request: { headers: requestHeaders } });
+  supabaseResponse.cookies.getAll().forEach((c) => withHeaders.cookies.set(c));
+  supabaseResponse = withHeaders;
 
   if (!user && isProtected(pathname)) {
     const url = request.nextUrl.clone();

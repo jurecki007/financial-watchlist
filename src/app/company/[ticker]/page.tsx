@@ -11,6 +11,7 @@ import {
 import { PriceChart } from "@/components/company/price-chart";
 import { AsOf, ErrorState, Skeleton, NumberSkeleton } from "@/components/ui/states";
 import { AlertPanel, type AlertRow } from "@/components/company/alert-panel";
+import { Nav } from "@/components/nav";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -175,7 +176,9 @@ export default async function CompanyPage({
   const ticker = normalizeTicker(decodeURIComponent(raw));
 
   return (
-    <main className="min-h-screen px-6 py-10 sm:px-10">
+    <>
+      <Nav />
+      <main className="min-h-screen px-6 py-10 sm:px-10">
       <div className="mx-auto max-w-[62rem] space-y-12">
         <header>
           <Link
@@ -247,6 +250,7 @@ export default async function CompanyPage({
           </Suspense>
         </Panel>
       </div>
-    </main>
+      </main>
+    </>
   );
 }

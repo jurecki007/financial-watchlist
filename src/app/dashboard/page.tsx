@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { getSessionUser, createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/auth/actions";
+import { createClient } from "@/lib/supabase/server";
 import { getQuotes, FAILURE_COPY, type Quote } from "@/lib/market-data";
 import { QuoteCard, QuoteCardSkeleton } from "@/components/watchlist/quote-card";
 import { EmptyState, ErrorState } from "@/components/ui/states";
+import { Nav } from "@/components/nav";
 import { AddTicker } from "@/components/watchlist/add-ticker";
 
 export const metadata = { title: "Dashboard — Financial Watchlist" };
@@ -71,8 +71,7 @@ async function Prices({ rows }: { rows: Row[] }) {
 }
 
 export default async function DashboardPage() {
-  // Identity comes from middleware, which already validated it this request.
-  const user = await getSessionUser();
+  // Identity now lives in the nav; this page only needs the data.
   const supabase = await createClient();
 
   // No user_id filter: RLS returns only this user's rows. tests/rls.test.ts
@@ -85,35 +84,19 @@ export default async function DashboardPage() {
   const rows = (data ?? []) as Row[];
 
   return (
-    <main className="min-h-screen px-6 py-10 sm:px-10">
+    <>
+      <Nav />
+      <main className="min-h-screen px-6 py-10 sm:px-10">
       <div className="mx-auto max-w-[62rem]">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
-              Watchlist
-            </p>
-            <h1 className="mt-3 text-2xl font-medium tracking-tight">
-              {rows.length
-                ? `${rows.length} ${rows.length === 1 ? "company" : "companies"}`
-                : "Your watchlist"}
-            </h1>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <Link
-              href="/roadmap"
-              className="text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
-            >
-              Roadmap
-            </Link>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
+        <header>
+          <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
+            Watchlist
+          </p>
+          <h1 className="mt-3 text-2xl font-medium tracking-tight">
+            {rows.length
+              ? `${rows.length} ${rows.length === 1 ? "company" : "companies"}`
+              : "Your watchlist"}
+          </h1>
         </header>
 
         <div className="mt-8 max-w-[26rem]">
@@ -139,10 +122,8 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <p className="mt-12 text-xs text-[var(--faint)]">
-          Signed in as {user?.email}
-        </p>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
