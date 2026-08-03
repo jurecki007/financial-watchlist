@@ -10,6 +10,8 @@ import {
 } from "@/lib/market-data";
 import { PriceChart } from "@/components/company/price-chart";
 import { AsOf, ErrorState, Skeleton, NumberSkeleton } from "@/components/ui/states";
+import { AlertPanel, type AlertRow } from "@/components/company/alert-panel";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Company detail.
@@ -110,6 +112,25 @@ async function Stats({ ticker }: { ticker: string }) {
   );
 }
 
+async function Alerts({ ticker }: { ticker: string }) {
+  const supabase = await createClient();
+  // No user_id filter — RLS scopes this to the signed-in user.
+  const { data } = await supabase
+    .from("price_alerts")
+    .select("id, condition, threshold, triggered_at, active")
+    .eq("ticker", ticker)
+    .order("created_at", { ascending: false });
+
+  const quote = await getQuote(ticker);
+  return (
+    <AlertPanel
+      ticker={ticker}
+      alerts={(data ?? []) as AlertRow[]}
+      currentPrice={quote.ok ? quote.data.price : undefined}
+    />
+  );
+}
+
 async function News({ ticker }: { ticker: string }) {
   const res = await getNews(ticker);
   if (!res.ok) return <Failure reason={res.reason} />;
@@ -200,6 +221,12 @@ export default async function CompanyPage({
             }
           >
             <Stats ticker={ticker} />
+          </Suspense>
+        </Panel>
+
+        <Panel title="Price alerts">
+          <Suspense fallback={<Skeleton className="h-28 w-full" />}>
+            <Alerts ticker={ticker} />
           </Suspense>
         </Panel>
 
