@@ -153,6 +153,13 @@ is a real phishing primitive — it bounces a user off-site at the moment they h
 just typed a password. `//evil.com` is the case that catches people: it is
 protocol-relative, so a bare `startsWith("/")` treats it as local.
 
+**Google OAuth needs two things set in the Supabase dashboard** (Authentication →
+URL Configuration), and neither lives in this repo: **Site URL** must be the
+deployed origin, and the callback must be in **Redirect URLs**. Supabase forwards
+any `redirect_to` to the provider without checking it, then validates on the way
+back — and a miss falls back silently to Site URL. If Site URL is still the
+default, users land on `localhost` after signing in.
+
 Routes are gated in `middleware.ts` rather than per component. Per-component
 checks fail open — a new page that forgets the check is simply unprotected, and
 nothing tells you. The route policy lives in `src/lib/auth/routes.ts`, free of
