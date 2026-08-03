@@ -12,6 +12,7 @@ import { PriceChart } from "@/components/company/price-chart";
 import { AsOf, ErrorState, Skeleton, NumberSkeleton } from "@/components/ui/states";
 import { AlertPanel, type AlertRow } from "@/components/company/alert-panel";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/ui/footer";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -251,6 +252,7 @@ export default async function CompanyPage({
         </Panel>
       </div>
       </main>
+      <Footer />
     </>
   );
 }

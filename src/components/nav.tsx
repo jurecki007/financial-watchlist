@@ -100,11 +100,16 @@ export async function Nav() {
         <div className="ml-auto flex items-center gap-5">
           {user ? (
             <>
-              {/* The address is confirmation of which account you are in —
-                  useful, but never the loudest thing in the bar. Hidden on the
-                  narrowest screens where the links matter more. */}
-              <span className="hidden max-w-[16ch] truncate font-mono text-[11px] text-[var(--faint)] sm:inline">
-                {user.email}
+              {/* An account mark rather than the address. A truncated
+                  "e2e-6988c9df-e…" identified nothing and read as a rendering
+                  fault; the initial plus a title carries the same confirmation
+                  without the noise, and screen readers get the full address. */}
+              <span
+                title={user.email}
+                aria-label={`Signed in as ${user.email}`}
+                className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[var(--rule-strong)] font-mono text-[11px] text-[var(--dim)] uppercase"
+              >
+                {user.email?.[0] ?? "?"}
               </span>
               <form action={signOut}>
                 <button

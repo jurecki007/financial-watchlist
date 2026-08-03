@@ -22,6 +22,7 @@
 import type { Metadata } from "next";
 import { loadRoadmap, type Item, type Phase } from "@/lib/roadmap";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/ui/footer";
 
 // Deliberately NOT force-static. The nav is session-aware, and a page
 // prerendered at build time has no request to read identity or pathname from —
@@ -257,16 +258,10 @@ export default function RoadmapPage() {
           </section>
         )}
 
-        <footer className="mt-20 border-t border-[var(--rule)] pt-8">
-          <a
-            className="text-sm text-[var(--dim)] transition-colors hover:text-[var(--gold)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold)]"
-            href="https://github.com/jurecki007/financial-watchlist"
-          >
-            Source on GitHub
-          </a>
-        </footer>
+
       </div>
       </main>
+      <Footer />
     </>
   );
 }
