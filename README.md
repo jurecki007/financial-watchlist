@@ -160,6 +160,24 @@ any `redirect_to` to the provider without checking it, then validates on the way
 back — and a miss falls back silently to Site URL. If Site URL is still the
 default, users land on `localhost` after signing in.
 
+### Auth latency
+
+`getUser()` costs ~105ms with a live session (it revalidates against the auth
+server) and 0ms without one — `supabase-js` short-circuits locally when there is
+no parseable token, so anonymous traffic pays nothing.
+
+A single button click used to spend that three times: middleware validated, the
+server action validated again, then the revalidated page validated a third time.
+Middleware now forwards the identity it already validated as `x-user-id` /
+`x-user-email`, and components read that instead of re-asking.
+
+That is a cache of middleware's decision, never an independent source of truth —
+the gate in `middleware.ts` still grants or denies access. It is safe to trust
+because middleware sets both headers **unconditionally** on every matched
+request, including to empty when signed out, so a forged inbound value is always
+overwritten. Verified: requests carrying hand-crafted `x-user-id` headers still
+receive a 307 to `/login`.
+
 Routes are gated in `middleware.ts` rather than per component. Per-component
 checks fail open — a new page that forgets the check is simply unprotected, and
 nothing tells you. The route policy lives in `src/lib/auth/routes.ts`, free of

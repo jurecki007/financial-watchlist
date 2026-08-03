@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { getUser, createClient } from "@/lib/supabase/server";
+import { getSessionUser, createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import { getQuotes, FAILURE_COPY, type Quote } from "@/lib/market-data";
 import { QuoteCard, QuoteCardSkeleton } from "@/components/watchlist/quote-card";
@@ -71,7 +71,8 @@ async function Prices({ rows }: { rows: Row[] }) {
 }
 
 export default async function DashboardPage() {
-  const user = await getUser();
+  // Identity comes from middleware, which already validated it this request.
+  const user = await getSessionUser();
   const supabase = await createClient();
 
   // No user_id filter: RLS returns only this user's rows. tests/rls.test.ts
