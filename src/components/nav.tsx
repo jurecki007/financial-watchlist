@@ -28,6 +28,8 @@ type NavLink = { href: string; label: string };
 
 const SIGNED_IN: NavLink[] = [
   { href: "/dashboard", label: "Watchlist" },
+  { href: "/news", label: "News" },
+  { href: "/alerts", label: "Alerts" },
   { href: "/roadmap", label: "Roadmap" },
 ];
 
@@ -36,9 +38,11 @@ const SIGNED_OUT: NavLink[] = [{ href: "/roadmap", label: "Roadmap" }];
 function NavItem({
   link,
   current,
+  className = "",
 }: {
   link: NavLink;
   current: boolean;
+  className?: string;
 }) {
   return (
     <Link
@@ -46,7 +50,7 @@ function NavItem({
       // aria-current is the part most navs skip. Without it the active state is
       // colour-only, which is exactly the information a screen reader loses.
       aria-current={current ? "page" : undefined}
-      className={`relative py-[15px] text-sm transition-colors ${
+      className={`relative py-[15px] text-sm transition-colors ${className} ${
         current
           ? "text-[var(--fg)]"
           : "text-[var(--dim)] hover:text-[var(--fg)]"
@@ -73,6 +77,8 @@ export async function Nav() {
   const user = await getSessionUser();
   const links = user ? SIGNED_IN : SIGNED_OUT;
 
+  // A company page belongs to the watchlist section — it is reached from
+  // there and returns there — so the nav keeps that context lit.
   const isCurrent = (href: string) =>
     href === "/dashboard"
       ? pathname === "/dashboard" || pathname.startsWith("/company")
@@ -91,9 +97,17 @@ export async function Nav() {
 
         {/* No hamburger. Two links do not earn a disclosure control, and
             hiding two words behind a tap is ceremony rather than design. */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4 sm:gap-5">
           {links.map((l) => (
-            <NavItem key={l.href} link={l} current={isCurrent(l.href)} />
+            <NavItem
+              key={l.href}
+              link={l}
+              current={isCurrent(l.href)}
+              // Roadmap is the least-used destination for a signed-in user and
+              // is also in the footer, so it yields space on small screens
+              // rather than pushing a hamburger over the other three.
+              className={l.href === "/roadmap" ? "hidden sm:inline-flex" : ""}
+            />
           ))}
         </div>
 

@@ -333,6 +333,28 @@ signed-in visitor was being shown "Sign in". Identity comes from the header
 middleware already validated, so putting the nav on every page costs no extra
 round-trip.
 
+## Sections
+
+| Route | |
+|---|---|
+| `/dashboard` | the watchlist and its prices |
+| `/company/[ticker]` | chart, statistics, headlines, alerts for one company |
+| `/news` | headlines across everything followed, newest first |
+| `/alerts` | every alert in one place |
+| `/roadmap` | public build progress, generated from `ROADMAP.md` |
+
+`/news` issues one Finnhub call per watched ticker **in parallel** — sequentially
+a twelve-company watchlist would take twelve round trips before anything
+rendered — and most are served from `news_cache`'s 30-minute TTL. A per-ticker
+failure is swallowed rather than propagated: one company's news being
+unavailable is not a reason to show nothing, so the feed omits it and reports
+how many sources answered.
+
+`/alerts` exists because alerts are *created* on a company page, which is the
+right place to set one, but that left the only way to see what you had armed as
+visiting each company in turn and remembering. Waiting and sent are separated
+because they answer different questions.
+
 ## Price alerts
 
 Thresholds are evaluated by a Supabase edge function on a schedule, not while a

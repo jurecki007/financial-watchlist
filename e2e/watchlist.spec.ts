@@ -174,3 +174,62 @@ test("a popular suggestion can be added in one click", async ({
     .eq("user_id", user.id);
   expect(data?.map((r) => r.ticker)).toContain("NVDA");
 });
+
+test("news and alerts are reachable from the nav and gated when signed out", async ({
+  page,
+}) => {
+  // Gated before any React runs.
+  await page.goto("/news");
+  await expect(page).toHaveURL(/\/login\?next=%2Fnews/);
+  await page.goto("/alerts");
+  await expect(page).toHaveURL(/\/login\?next=%2Falerts/);
+});
+
+test("news aggregates headlines across the whole watchlist", async ({
+  signedIn: page,
+  user,
+}) => {
+  await page.getByRole("link", { name: "News" }).click();
+  await expect(page).toHaveURL(/\/news/);
+  // Nothing watched yet, so the feed must guide rather than show an error.
+  await expect(page.getByText("Nothing to report yet")).toBeVisible();
+
+  await admin
+    .from("watchlist_items")
+    .insert({ user_id: user.id, ticker: "AAPL", company_name: "Apple Inc" });
+  await page.reload();
+
+  // Either headlines or an honest empty/error state — never a blank page.
+  await expect(
+    page.getByRole("heading", { name: "News", level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByText("Across the 1 company you follow")).toBeVisible();
+});
+
+test("alerts page lists what a company page armed", async ({
+  signedIn: page,
+  user,
+}) => {
+  await page.goto("/alerts");
+  await expect(page.getByText("No alerts set")).toBeVisible();
+
+  await admin.from("price_alerts").insert({
+    user_id: user.id,
+    ticker: "AAPL",
+    condition: "above",
+    threshold: 1,
+  });
+  await page.reload();
+
+  await expect(page.getByText("1 watching for a price")).toBeVisible();
+  await expect(page.getByText("above 1.00")).toBeVisible();
+
+  // Deleting from here must actually remove the row, not just hide it.
+  await page.getByRole("button", { name: "Delete the AAPL alert" }).click();
+  await expect(page.getByText("No alerts set")).toBeVisible();
+  const { data } = await admin
+    .from("price_alerts")
+    .select("id")
+    .eq("user_id", user.id);
+  expect(data).toHaveLength(0);
+});

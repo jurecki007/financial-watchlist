@@ -18,6 +18,7 @@ describe("auth gate coverage", () => {
     "/dashboard/",
     "/dashboard/settings",
     "/company/AAPL",
+    "/news",
     "/alerts",
     "/alerts/new",
     "/settings/profile",
