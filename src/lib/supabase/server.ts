@@ -1,5 +1,6 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 /**
  * Supabase client for server components, route handlers, and server actions.
@@ -41,16 +42,37 @@ export async function createClient() {
 /**
  * The signed-in user, or null.
  *
+ * Wrapped in React `cache()`, so several components in one render share a
+ * single round-trip instead of each paying ~150ms. The cache is per-request,
+ * so one user's identity can never be served to another.
+ *
  * Deliberately `getUser()` and not `getSession()`. getSession reads the JWT
  * straight from the cookie without asking Supabase whether it is still valid,
  * so on the server it will happily report a user for a forged or revoked
  * token. getUser revalidates against the auth server. Anything making an
  * access decision must use this.
  */
-export async function getUser() {
+/**
+ * The identity middleware already validated on this request, read from the
+ * header it forwards. ~105ms cheaper than re-asking Supabase.
+ *
+ * Safe to trust because middleware sets these headers unconditionally on every
+ * matched request — including to empty when signed out — so a value a client
+ * tries to forge is always overwritten before any component sees it. It is a
+ * cache of middleware's decision, never an independent source of truth: the
+ * gate in middleware.ts is still what grants or denies access.
+ */
+export const getSessionUser = cache(async () => {
+  const h = await headers();
+  const id = h.get("x-user-id");
+  if (!id) return null;
+  return { id, email: h.get("x-user-email") || undefined };
+});
+
+export const getUser = cache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
-}
+});

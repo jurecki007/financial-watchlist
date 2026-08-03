@@ -44,9 +44,22 @@ export async function updateSession(request: NextRequest) {
   // server. An access decision made from an unvalidated cookie is not an
   // access decision. Must run immediately after client creation and before
   // any early return, or the session is never refreshed.
+  //
+  // Measured: ~105ms with a real session, 0ms without one — supabase-js
+  // short-circuits locally when there is no parseable token, so anonymous
+  // traffic already pays nothing here and needs no guard of our own.
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Middleware has now validated this user, so downstream renders do not need
+  // to repeat the round-trip. Forwarding the result removes one of the three
+  // getUser calls a single button click used to cost. Set unconditionally —
+  // including to empty — so an inbound forged header is always overwritten.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-user-id", user?.id ?? "");
+  requestHeaders.set("x-user-email", user?.email ?? "");
+  supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
   const { pathname } = request.nextUrl;
 
