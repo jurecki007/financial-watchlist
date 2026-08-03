@@ -102,16 +102,15 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 
 | # | Add-on | Effort | Impact |
 |---|---|---|---|
-| 1 | Price alerts (threshold-based) + Resend email via scheduled edge function | Medium | High — async/event-driven thinking |
+| 1 | ~~Price alerts (threshold-based) + Resend email via scheduled edge function~~ **shipped** | Medium | High — async/event-driven thinking |
 | 2 | ~~RLS tests proving cross-user isolation — 12 shipped in Phase 2~~ | Low | High — rarely done, strong signal |
-| 3 | Search debounce + polished autocomplete UX | Low | Medium |
+| 3 | ~~Search debounce + polished autocomplete UX~~ **shipped in Phase 5** | Low | Medium |
 | 4 | Optimistic UI on watchlist add/remove | Low | Medium |
-| 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) | Medium | Medium |
+| 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) — *deferred* | Medium | Medium |
 | 6 | Sentiment tag on news headlines | Medium | Medium |
-| 7 | Paper-trading portfolio simulation (fake shares, track P/L) | High | High, scope-risky |
-| 8 | E2E test (Playwright) for signup → add ticker → view dashboard | Medium | High |
+| 7 | E2E test (Playwright) for signup → add ticker → view dashboard | Medium | High |
 
-**Suggested cutoff:** if time-constrained, stop after add-ons #1 and #2 — alerts + RLS tests together demonstrate both product thinking and backend security understanding.
+**Cutoff reached:** #2 shipped in Phase 2, #1 is the current work. Paper-trading was dropped as scope-risky; the weekly digest is deferred — the per-alert email covers the same scheduled-send story without a second cron.
 
 ---
 

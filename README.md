@@ -290,6 +290,31 @@ Each of these passed review, type-checking and lint while being wrong:
 - Three fail-open defects in the secret-scanning scripts, found by planting a
   fake key rather than by reading them
 
+## Price alerts
+
+Thresholds are evaluated by a Supabase edge function on a schedule, not while a
+user happens to have the page open — that is the point of the feature.
+
+Three decisions worth noting:
+
+**One quote request for every distinct ticker across all users.** Twelve Data
+allows 8 requests a minute; one call per alert would exceed that with a dozen
+users.
+
+**`triggered_at` is claimed BEFORE the email is sent.** Sending twice is worse
+than sending late: a duplicate price alert reads as a second crossing that never
+happened. A send that fails after the claim is logged and simply does not
+re-fire — the safer direction to fail in.
+
+**The function is gated by a shared secret.** It is deployed with
+`--no-verify-jwt` so the scheduler can call it without minting a token, which
+leaves the URL reachable by anyone who finds it. Without the check, a stranger
+could hammer it and spend the daily Twelve Data budget. Verified: 403 without
+the header, 403 with a wrong one.
+
+Scheduling is set up in the Supabase dashboard rather than committed, because a
+cron job that calls this function has to carry the secret.
+
 ## Licence
 
 MIT
