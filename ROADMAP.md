@@ -109,7 +109,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 | 4 | Optimistic UI on watchlist add/remove | Low | Medium |
 | 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) — *deferred* | Medium | Medium |
 | 6 | Sentiment tag on news headlines | Medium | Medium |
-| 7 | E2E test (Playwright) for signup → add ticker → view dashboard | Medium | High |
+| 7 | ~~E2E test (Playwright) for signup → add ticker → view dashboard~~ **shipped — 6 tests** | Medium | High |
 
 **Cutoff reached:** #2 shipped in Phase 2, #1 is the current work. Paper-trading was dropped as scope-risky; the weekly digest is deferred — the per-alert email covers the same scheduled-send story without a second cron.
 

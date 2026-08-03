@@ -5,6 +5,8 @@ import { getQuotes, FAILURE_COPY, type Quote } from "@/lib/market-data";
 import { QuoteCard, QuoteCardSkeleton } from "@/components/watchlist/quote-card";
 import { EmptyState, ErrorState } from "@/components/ui/states";
 import { Nav } from "@/components/nav";
+import { Container } from "@/components/ui/shell";
+import { AsOf } from "@/components/ui/states";
 import { AddTicker } from "@/components/watchlist/add-ticker";
 
 export const metadata = { title: "Dashboard — Financial Watchlist" };
@@ -56,14 +58,19 @@ async function Prices({ rows }: { rows: Row[] }) {
 
   return (
     <>
+      {/* Stated once. The same timestamp repeated on every card was five
+          copies of one fact competing with the prices they sat under. */}
+      {result.asOf && (
+        <p className="sm:col-span-2 lg:col-span-3 -mb-1">
+          <AsOf time={result.asOf} stale={result.stale} />
+        </p>
+      )}
       {rows.map((r) => (
         <QuoteCard
           key={r.id}
           ticker={r.ticker}
           companyName={r.company_name}
           quote={quotes[r.ticker]}
-          asOf={result.asOf}
-          stale={result.stale}
         />
       ))}
     </>
@@ -86,24 +93,32 @@ export default async function DashboardPage() {
   return (
     <>
       <Nav />
-      <main className="min-h-screen px-6 py-10 sm:px-10">
-      <div className="mx-auto max-w-[62rem]">
-        <header>
-          <p className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
-            Watchlist
-          </p>
-          <h1 className="mt-3 text-2xl font-medium tracking-tight">
-            {rows.length
-              ? `${rows.length} ${rows.length === 1 ? "company" : "companies"}`
-              : "Your watchlist"}
-          </h1>
+      <main className="min-h-screen py-10">
+      <Container>
+        <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
+          <div>
+            <h1 className="text-2xl font-medium tracking-tight">
+              Your watchlist
+            </h1>
+            {/* Only when there is a count to give. The empty state below
+                already says there is nothing here; saying it twice on one
+                screen is noise, and it made two elements match the same
+                string. */}
+            {rows.length > 0 && (
+              <p className="mt-1.5 text-sm text-[var(--dim)]">
+                {rows.length} {rows.length === 1 ? "company" : "companies"}{" "}
+                tracked
+              </p>
+            )}
+          </div>
+          {/* Adding is the primary action on this page, so it sits on the
+              header line rather than below it as a secondary form. */}
+          <div className="w-full max-w-[22rem]">
+            <AddTicker />
+          </div>
         </header>
 
-        <div className="mt-8 max-w-[26rem]">
-          <AddTicker />
-        </div>
-
-        <div className="mt-10">
+        <div className="mt-9">
           {rows.length === 0 ? (
             <EmptyState
               title="Nothing tracked yet"
@@ -122,7 +137,7 @@ export default async function DashboardPage() {
           )}
         </div>
 
-      </div>
+      </Container>
       </main>
     </>
   );

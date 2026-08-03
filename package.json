@@ -13,7 +13,8 @@
     "test:routes": "node --test tests/route-protection.test.ts",
     "test": "npm run test:routes && npm run test:market && npm run test:toast && npm run test:rls",
     "test:market": "node --test tests/market-data.test.ts",
-    "test:toast": "node --test tests/toast-dedup.test.ts"
+    "test:toast": "node --test tests/toast-dedup.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

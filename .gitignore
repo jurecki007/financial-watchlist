@@ -54,3 +54,9 @@ yarn-error.log*
 .branches
 .temp
 supabase/.temp
+
+# playwright
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
