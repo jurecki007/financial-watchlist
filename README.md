@@ -291,6 +291,13 @@ Each of these passed review, type-checking and lint while being wrong:
 - Three fail-open defects in the secret-scanning scripts, found by planting a
   fake key rather than by reading them
 
+### Sign-out
+
+Verified against ASVS 7.4.1 rather than assumed: after `signOut()` the refresh
+token is **revoked server-side** (400 on exchange) and the previous access token
+is rejected (403). It is not merely a deleted cookie the client controls, which
+is the common way this requirement is only apparently met.
+
 ## End-to-end tests
 
 `npm run test:e2e` builds and serves the **production** bundle rather than

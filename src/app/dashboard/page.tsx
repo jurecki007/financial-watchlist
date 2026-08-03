@@ -5,6 +5,7 @@ import { getQuotes, FAILURE_COPY, type Quote } from "@/lib/market-data";
 import { QuoteCard, QuoteCardSkeleton } from "@/components/watchlist/quote-card";
 import { EmptyState, ErrorState } from "@/components/ui/states";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/ui/footer";
 import { Container } from "@/components/ui/shell";
 import { AsOf } from "@/components/ui/states";
 import { AddTicker } from "@/components/watchlist/add-ticker";
@@ -114,7 +115,7 @@ export default async function DashboardPage() {
           {/* Adding is the primary action on this page, so it sits on the
               header line rather than below it as a secondary form. */}
           <div className="w-full max-w-[22rem]">
-            <AddTicker />
+            <AddTicker watched={rows.map((r) => r.ticker)} />
           </div>
         </header>
 
@@ -139,6 +140,7 @@ export default async function DashboardPage() {
 
       </Container>
       </main>
+      <Footer />
     </>
   );
 }

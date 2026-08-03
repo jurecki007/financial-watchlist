@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { addTicker, type WatchlistState } from "@/app/dashboard/actions";
 import type { SymbolMatch } from "@/lib/market-data";
 import { useToast } from "@/components/ui/toast";
+import { suggestionsFor } from "@/lib/popular-tickers";
 
 /**
  * Ticker search and add.
@@ -18,13 +19,61 @@ import { useToast } from "@/components/ui/toast";
  * one. That reordering bug is invisible on a fast connection and constant on a
  * slow one.
  */
-export function AddTicker() {
+/** Shared by suggestions and search results so the two cannot diverge. */
+function Row({
+  ticker,
+  name,
+  meta,
+  formAction,
+  pending,
+}: {
+  ticker: string;
+  name: string;
+  meta?: string;
+  formAction: (formData: FormData) => void;
+  pending: boolean;
+}) {
+  return (
+    <li>
+      <form action={formAction}>
+        <input type="hidden" name="ticker" value={ticker} />
+        <input type="hidden" name="company_name" value={name} />
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex w-full items-baseline gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--ground)] disabled:opacity-50"
+        >
+          <span className="font-mono text-sm">{ticker}</span>
+          <span className="min-w-0 flex-1 truncate text-sm text-[var(--dim)]">
+            {name}
+          </span>
+          {meta && (
+            <span className="font-mono text-[11px] text-[var(--faint)]">
+              {meta}
+            </span>
+          )}
+        </button>
+      </form>
+    </li>
+  );
+}
+
+export function AddTicker({ watched = [] }: { watched?: string[] }) {
+  const [focused, setFocused] = useState(false);
   const [query, setQuery] = useState("");
   const [matches, setMatches] = useState<SymbolMatch[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
   const { push } = useToast();
+
+  // Suggestions stand in for results only while the field is empty. Once two
+  // characters are typed the real search owns the panel — showing both would
+  // put two lists of companies on screen with no way to tell which responds
+  // to what was typed.
+  const suggestions = suggestionsFor(watched);
+  const showSuggestions =
+    focused && query.trim().length < 2 && suggestions.length > 0;
   // Read inside the debounce callback without making it a dependency.
   const matchesRef = useRef<SymbolMatch[]>([]);
 
@@ -102,6 +151,10 @@ export function AddTicker() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setFocused(true)}
+            // A click on a suggestion has to land before blur removes it, so
+            // the panel closes on the next tick rather than immediately.
+            onBlur={() => setTimeout(() => setFocused(false), 150)}
             placeholder="Search by name or symbol"
             autoComplete="off"
             aria-describedby="add-ticker-status"
@@ -138,30 +191,35 @@ export function AddTicker() {
         <p className="mt-3 text-sm text-[var(--dim)]">{searchError}</p>
       )}
 
+      {showSuggestions && (
+        <ul className="mt-2 border border-[var(--rule)] bg-[var(--raised)]">
+          {/* Labelled, so it never reads as a result of what was typed. */}
+          <li className="border-b border-[var(--rule)] px-3 py-2 font-mono text-[11px] tracking-[0.14em] text-[var(--faint)] uppercase">
+            Popular
+          </li>
+          {suggestions.map((p) => (
+            <Row
+              key={p.ticker}
+              ticker={p.ticker}
+              name={p.name}
+              formAction={formAction}
+              pending={pending}
+            />
+          ))}
+        </ul>
+      )}
+
       {matches.length > 0 && (
         <ul className="mt-2 max-h-64 overflow-y-auto border border-[var(--rule)] bg-[var(--raised)]">
           {matches.map((m) => (
-            <li key={`${m.ticker}-${m.exchange ?? ""}`}>
-              <form action={formAction}>
-                <input type="hidden" name="ticker" value={m.ticker} />
-                <input type="hidden" name="company_name" value={m.name} />
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="flex w-full items-baseline gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--ground)] disabled:opacity-50"
-                >
-                  <span className="font-mono text-sm">{m.ticker}</span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-[var(--dim)]">
-                    {m.name}
-                  </span>
-                  {m.exchange && (
-                    <span className="font-mono text-[11px] text-[var(--faint)]">
-                      {m.exchange}
-                    </span>
-                  )}
-                </button>
-              </form>
-            </li>
+            <Row
+              key={`${m.ticker}-${m.exchange ?? ""}`}
+              ticker={m.ticker}
+              name={m.name}
+              meta={m.exchange}
+              formAction={formAction}
+              pending={pending}
+            />
           ))}
         </ul>
       )}
