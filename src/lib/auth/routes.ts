@@ -8,7 +8,13 @@
  */
 
 /** Requires a session. Matched as a path segment prefix. */
-export const PROTECTED = ["/dashboard", "/company", "/alerts", "/settings"];
+export const PROTECTED = [
+  "/dashboard",
+  "/company",
+  "/news",
+  "/alerts",
+  "/settings",
+];
 
 /** Pointless for a signed-in user; they get bounced to the dashboard. */
 export const AUTH_ROUTES = ["/login", "/signup"];
