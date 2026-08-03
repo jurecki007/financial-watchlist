@@ -22,4 +22,13 @@ const eslintConfig = [
   },
 ];
 
-export default eslintConfig;
+const config = [
+  ...eslintConfig,
+  {
+    // Playwright's fixture `use()` is not React's `use` hook; rules-of-hooks
+    // cannot distinguish them and flags every fixture.
+    ignores: ["e2e/**", "playwright.config.ts"],
+  },
+];
+
+export default config;

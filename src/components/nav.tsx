@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { getSessionUser } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
+import { Container } from "@/components/ui/shell";
 
 /**
  * THESIS: instrument chrome, not a website header. It refuses the category
@@ -79,10 +80,8 @@ export async function Nav() {
 
   return (
     <header className="border-b border-[var(--rule)]">
-      <nav
-        aria-label="Primary"
-        className="mx-auto flex max-w-[62rem] items-center gap-6 px-6 sm:px-10"
-      >
+      <Container className="flex items-center gap-6">
+        <nav aria-label="Primary" className="contents">
         <Link
           href={user ? "/dashboard" : "/"}
           className="py-[15px] font-mono text-xs tracking-[0.18em] whitespace-nowrap text-[var(--fg)] uppercase transition-colors hover:text-[var(--gold)]"
@@ -133,7 +132,8 @@ export async function Nav() {
             </>
           )}
         </div>
-      </nav>
+        </nav>
+      </Container>
     </header>
   );
 }

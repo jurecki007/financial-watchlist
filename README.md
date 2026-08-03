@@ -41,6 +41,7 @@ Nothing reads the env vars yet, so the app builds and runs with `.env.local` emp
 | `npm run lint` | eslint |
 | `npm run security` | env-exposure guard (same check CI runs) |
 | `npm run test:rls` | cross-user RLS isolation suite (needs `supabase start`) |
+| `npm run test:e2e` | Playwright journey against the production bundle |
 | `npm run test:routes` | auth-gate coverage (no server needed) |
 | `npm run test:market` | market-data error classification |
 | `npm run test` | both suites |
@@ -289,6 +290,23 @@ Each of these passed review, type-checking and lint while being wrong:
   rate limit as success
 - Three fail-open defects in the secret-scanning scripts, found by planting a
   fake key rather than by reading them
+
+## End-to-end tests
+
+`npm run test:e2e` builds and serves the **production** bundle rather than
+running `next dev`. Dev mode behaves differently enough around streaming,
+caching and middleware that a passing dev-mode test says less than it appears
+to — and a stale-`.next` incident during this build is exactly the kind of thing
+a production run catches and dev does not.
+
+Each test gets a disposable confirmed user created through the admin API, and
+tears it down afterwards. Signup is not driven through the form for every test
+because email confirmation would block the run; the form has its own coverage.
+
+The suite asserts things only a real browser can: that middleware redirects
+before any React runs, that `?next=` survives the round trip, that a wrong
+password does not reveal whether the account exists, and that signing out
+cannot be undone by back-navigation.
 
 ## Navigation
 

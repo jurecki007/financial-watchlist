@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { removeTicker } from "@/app/dashboard/actions";
-import { AsOf, NumberSkeleton, Skeleton } from "@/components/ui/states";
+import { NumberSkeleton, Skeleton } from "@/components/ui/states";
 import type { Quote } from "@/lib/market-data";
 
 /**
@@ -14,7 +14,7 @@ import type { Quote } from "@/lib/market-data";
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-[8.5rem] flex-col justify-between border border-[var(--rule)] bg-[var(--raised)] px-4 py-3.5">
+    <div className="flex min-h-[7.5rem] flex-col justify-between border border-[var(--rule)] bg-[var(--raised)] px-4 py-3.5 transition-colors hover:border-[var(--rule-strong)]">
       {children}
     </div>
   );
@@ -45,14 +45,10 @@ export function QuoteCard({
   ticker,
   companyName,
   quote,
-  asOf,
-  stale,
 }: {
   ticker: string;
   companyName?: string | null;
   quote?: Quote;
-  asOf?: string;
-  stale?: boolean;
 }) {
   const up = (quote?.changePercent ?? 0) >= 0;
 
@@ -93,18 +89,21 @@ export function QuoteCard({
                 maximumFractionDigits: 2,
               })}
             </p>
-            <div className="mt-2 flex items-baseline gap-2">
-              {/* Direction carries a glyph and a sign as well as colour, so it
-                  survives colour being unavailable. */}
-              <span
-                className={`font-mono text-xs tabular-nums ${
-                  up ? "text-[var(--up)]" : "text-[var(--down)]"
-                }`}
-              >
-                {up ? "▲" : "▼"} {up ? "+" : ""}
-                {quote.changePercent.toFixed(2)}%
+            {/* Direction carries a glyph and a sign as well as colour, so it
+                survives colour being unavailable. The absolute move sits
+                beside the percentage: "+4.9%" alone hides whether that is
+                three dollars or thirty. */}
+            <div
+              className={`mt-2 font-mono text-xs tabular-nums ${
+                up ? "text-[var(--up)]" : "text-[var(--down)]"
+              }`}
+            >
+              {up ? "▲" : "▼"} {up ? "+" : ""}
+              {quote.changePercent.toFixed(2)}%
+              <span className="ml-2 text-[var(--faint)]">
+                {up ? "+" : ""}
+                {quote.change.toFixed(2)}
               </span>
-              <AsOf time={asOf} stale={stale} />
             </div>
           </>
         ) : (
