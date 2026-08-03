@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { siteUrl } from "@/lib/auth/site-url";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { safeRedirectPath } from "@/lib/auth/routes";
@@ -62,7 +62,7 @@ export async function signUp(
   formData: FormData,
 ): Promise<AuthState> {
   const supabase = await createClient();
-  const origin = (await headers()).get("origin") ?? "";
+  const origin = await siteUrl();
 
   const { error } = await supabase.auth.signUp({
     email: String(formData.get("email") ?? ""),
@@ -82,7 +82,7 @@ export async function signUp(
 
 export async function signInWithGoogle(formData: FormData): Promise<void> {
   const supabase = await createClient();
-  const origin = (await headers()).get("origin") ?? "";
+  const origin = await siteUrl();
   const next = safeRedirectPath(formData.get("next"));
 
   const { data, error } = await supabase.auth.signInWithOAuth({
