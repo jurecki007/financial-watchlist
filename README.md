@@ -290,6 +290,24 @@ Each of these passed review, type-checking and lint while being wrong:
 - Three fail-open defects in the secret-scanning scripts, found by planting a
   fake key rather than by reading them
 
+## Navigation
+
+One `<Nav>` across dashboard, company and roadmap, replacing four routes that
+each improvised their own header. `/roadmap` is public and previously had no way
+into the app at all.
+
+The active route is marked by a gold rule flush with the bar's own hairline — the
+nav reads as one continuous edge with a segment lit, rather than a website
+underline — and carries `aria-current="page"`, so the state is not colour-only.
+
+No hamburger. Two links do not earn a disclosure control.
+
+The nav is session-aware, which forced `/roadmap` off `force-static`: a page
+prerendered at build time has no request to read identity or pathname from, so a
+signed-in visitor was being shown "Sign in". Identity comes from the header
+middleware already validated, so putting the nav on every page costs no extra
+round-trip.
+
 ## Price alerts
 
 Thresholds are evaluated by a Supabase edge function on a schedule, not while a
