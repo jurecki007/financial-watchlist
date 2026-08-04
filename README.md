@@ -333,6 +333,28 @@ signed-in visitor was being shown "Sign in". Identity comes from the header
 middleware already validated, so putting the nav on every page costs no extra
 round-trip.
 
+## Optimistic watchlist
+
+Add and remove apply immediately. Two things this forced:
+
+**The dispatch has to sit inside the action**, not in `onSubmit`. React only
+accepts optimistic updates within an action's transition — dispatching outside
+one silently dropped the update *and* stopped the server action running, so the
+UI looked right while the database never changed.
+
+**Optimistic UI makes the screen stop being evidence of persistence.** Three E2E
+tests were asserting a card had appeared or vanished and then querying the
+database; with optimism those assertions passed instantly, before the round trip
+finished. They now poll the real rows.
+
+`useOptimistic` rather than hand-rolled state: React discards the optimistic
+value automatically when the transition settles. Manual state has to be cleared
+by hand, and the moment that is missed the list shows something the database
+does not contain — worse than no optimism at all in a product about money.
+
+A card added a moment ago has no quote yet and says "fetching price…" rather
+than inventing a number.
+
 ## Sections
 
 | Route | |

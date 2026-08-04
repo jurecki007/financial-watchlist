@@ -2,8 +2,11 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getQuotes, FAILURE_COPY, type Quote } from "@/lib/market-data";
-import { QuoteCard, QuoteCardSkeleton } from "@/components/watchlist/quote-card";
-import { EmptyState, ErrorState } from "@/components/ui/states";
+import { QuoteCardSkeleton } from "@/components/watchlist/quote-card";
+import { WatchlistProvider } from "@/components/watchlist/optimistic";
+import { WatchlistGrid } from "@/components/watchlist/grid";
+import { WatchlistCount } from "@/components/watchlist/count";
+import { ErrorState } from "@/components/ui/states";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/ui/footer";
 import { Container } from "@/components/ui/shell";
@@ -30,27 +33,25 @@ async function Prices({ rows }: { rows: Row[] }) {
     const copy = FAILURE_COPY[result.reason];
     return (
       <>
-        <div className="sm:col-span-2 lg:col-span-3">
-          <ErrorState
-            title={copy.title}
-            body={copy.body}
-            retry={
-              result.retryable ? (
-                <Link
-                  href="/dashboard"
-                  className="inline-flex h-8 items-center border border-[var(--rule-strong)] px-3 text-xs transition-colors hover:border-[var(--faint)]"
-                >
-                  Try again
-                </Link>
-              ) : undefined
-            }
-          />
-        </div>
+        <ErrorState
+          title={copy.title}
+          body={copy.body}
+          retry={
+            result.retryable ? (
+              <Link
+                href="/dashboard"
+                className="inline-flex h-8 items-center border border-[var(--rule-strong)] px-3 text-xs transition-colors hover:border-[var(--faint)]"
+              >
+                Try again
+              </Link>
+            ) : undefined
+          }
+        />
         {/* The companies are still known even when prices are not, so the grid
             keeps its shape rather than collapsing to an error and nothing. */}
-        {rows.map((r) => (
-          <QuoteCard key={r.id} ticker={r.ticker} companyName={r.company_name} />
-        ))}
+        <div className="mt-3">
+          <WatchlistGrid quotes={{}} />
+        </div>
       </>
     );
   }
@@ -62,18 +63,11 @@ async function Prices({ rows }: { rows: Row[] }) {
       {/* Stated once. The same timestamp repeated on every card was five
           copies of one fact competing with the prices they sat under. */}
       {result.asOf && (
-        <p className="sm:col-span-2 lg:col-span-3 -mb-1">
+        <p className="mb-3">
           <AsOf time={result.asOf} stale={result.stale} />
         </p>
       )}
-      {rows.map((r) => (
-        <QuoteCard
-          key={r.id}
-          ticker={r.ticker}
-          companyName={r.company_name}
-          quote={quotes[r.ticker]}
-        />
-      ))}
+      <WatchlistGrid quotes={quotes} />
     </>
   );
 }
@@ -96,21 +90,13 @@ export default async function DashboardPage() {
       <Nav />
       <main className="min-h-screen py-10">
       <Container>
+        <WatchlistProvider items={rows}>
         <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
           <div>
             <h1 className="text-2xl font-medium tracking-tight">
               Your watchlist
             </h1>
-            {/* Only when there is a count to give. The empty state below
-                already says there is nothing here; saying it twice on one
-                screen is noise, and it made two elements match the same
-                string. */}
-            {rows.length > 0 && (
-              <p className="mt-1.5 text-sm text-[var(--dim)]">
-                {rows.length} {rows.length === 1 ? "company" : "companies"}{" "}
-                tracked
-              </p>
-            )}
+            <WatchlistCount />
           </div>
           {/* Adding is the primary action on this page, so it sits on the
               header line rather than below it as a secondary form. */}
@@ -120,23 +106,24 @@ export default async function DashboardPage() {
         </header>
 
         <div className="mt-9">
-          {rows.length === 0 ? (
-            <EmptyState
-              title="Nothing tracked yet"
-              body="Search for a company above and add it. Prices, charts and news appear here once you do."
-            />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Suspense
-                fallback={rows.map((r) => (
-                  <QuoteCardSkeleton key={r.id} ticker={r.ticker} />
-                ))}
-              >
-                <Prices rows={rows} />
-              </Suspense>
-            </div>
-          )}
+          {/* The empty state now lives inside the grid, because membership is
+              optimistic: adding the first company must replace it immediately
+              rather than after the server confirms. */}
+          <Suspense
+            fallback={
+              rows.length === 0 ? null : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {rows.map((r) => (
+                    <QuoteCardSkeleton key={r.id} ticker={r.ticker} />
+                  ))}
+                </div>
+              )
+            }
+          >
+            <Prices rows={rows} />
+          </Suspense>
         </div>
+        </WatchlistProvider>
 
       </Container>
       </main>
