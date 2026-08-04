@@ -353,6 +353,31 @@ earlier attempts were measuring a wide render through a narrow window and
 proving nothing. Seven tests assert zero horizontal overflow across all eight
 routes; they found the nav at 516px inside a 375px viewport.
 
+## Watchlist cards
+
+A card exists to answer "should I look closer?", and a price plus a percentage
+cannot answer that. Each card carries a **52-week range track** with a marker
+showing where the price currently sits — 309 means nothing; 309 near the top of
+a 202–345 year means something.
+
+Every field this needs was **already in the quote response and being discarded**:
+day high/low, 52-week high/low, volume and market-open state all ship in the
+same payload we were reading `close` out of. The added information costs no
+extra request.
+
+A track with a marker rather than a bar filling from the left, because the value
+is a *position*, not a quantity — a filled bar would imply 75% *of* something.
+The marker is invisible to assistive tech, so the same fact is stated in words.
+
+The border is gone: the grid gap already separated the cards, so the box was
+chrome doing work the spacing had done.
+
+## Search
+
+Fully keyboard-driveable — `↑`/`↓` move through options, `Enter` selects,
+`Escape` closes — with `combobox`/`listbox`/`option` roles and
+`aria-activedescendant`. A search that needs a pointer is unfinished.
+
 ## Optimistic watchlist
 
 Add and remove apply immediately. Two things this forced:

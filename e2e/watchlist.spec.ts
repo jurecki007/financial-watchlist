@@ -52,7 +52,7 @@ test("search, add a company, and see it on the dashboard", async ({
 
   // Results come from a live provider, so wait for the option rather than a
   // fixed timeout.
-  const option = page.getByRole("button", { name: /AAPL/ }).first();
+  const option = page.getByRole("option", { name: /AAPL/ }).first();
   await expect(option).toBeVisible();
   await option.click();
 
@@ -138,7 +138,7 @@ test("focusing the empty search offers popular tickers", async ({
 
   await field.click();
   await expect(page.getByText("Popular")).toBeVisible();
-  await expect(page.getByRole("button", { name: /AAPL/ })).toBeVisible();
+  await expect(page.getByRole("option", { name: /AAPL/ })).toBeVisible();
 
   // Typing hands the panel over to the real search; two lists of companies
   // with no way to tell which answers the query would be worse than none.
@@ -160,9 +160,9 @@ test("popular suggestions exclude companies already watched", async ({
 
   // Offering a duplicate makes the feature look broken when the insert
   // silently no-ops on the unique constraint.
-  const list = page.getByRole("list").filter({ hasText: "Popular" });
-  await expect(list.getByRole("button", { name: /AAPL/ })).toHaveCount(0);
-  await expect(list.getByRole("button", { name: /MSFT/ })).toBeVisible();
+  const list = page.getByRole("listbox");
+  await expect(list.getByRole("option", { name: /AAPL/ })).toHaveCount(0);
+  await expect(list.getByRole("option", { name: /MSFT/ })).toBeVisible();
 });
 
 test("a popular suggestion can be added in one click", async ({
@@ -170,7 +170,7 @@ test("a popular suggestion can be added in one click", async ({
   user,
 }) => {
   await page.getByLabel("Add a company").click();
-  await page.getByRole("button", { name: /NVDA/ }).first().click();
+  await page.getByRole("option", { name: /NVDA/ }).first().click();
 
   // Wait for the card, not for the click. Querying the database straight after
   // the click races the server action's round trip.
@@ -250,4 +250,48 @@ test("alerts page lists what a company page armed", async ({
       return data?.length ?? -1;
     })
     .toBe(0);
+});
+
+test("the search can be driven entirely from the keyboard", async ({
+  signedIn: page,
+  user,
+}) => {
+  await page.getByLabel("Add a company").focus();
+  const field = page.getByLabel("Add a company");
+  await expect(field).toHaveAttribute("aria-expanded", "true");
+
+  // Arrow down twice, then Enter — no pointer involved.
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  const chosen = await page
+    .locator('[role="option"][aria-selected="true"]')
+    .innerText();
+  await page.keyboard.press("Enter");
+
+  const ticker = chosen.trim().split(/\s+/)[0];
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from("watchlist_items")
+        .select("ticker")
+        .eq("user_id", user.id);
+      return data?.map((r) => r.ticker) ?? [];
+    })
+    .toContain(ticker);
+});
+
+test("a card shows where the price sits in its 52-week range", async ({
+  signedIn: page,
+  user,
+}) => {
+  await admin
+    .from("watchlist_items")
+    .insert({ user_id: user.id, ticker: "AAPL", company_name: "Apple Inc" });
+  await page.reload();
+
+  // The marker is positional and invisible to assistive tech, so the same
+  // fact must exist in words.
+  await expect(
+    page.getByText(/percent of the 52-week range/),
+  ).toBeAttached();
 });

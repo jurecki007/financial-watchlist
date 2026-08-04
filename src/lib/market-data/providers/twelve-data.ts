@@ -29,8 +29,17 @@ type RawQuote = {
   change?: string;
   percent_change?: string;
   currency?: string;
+  high?: string;
+  low?: string;
+  is_market_open?: boolean;
+  fifty_two_week?: { low?: string; high?: string };
   status?: string;
   code?: number;
+};
+
+const num = (v: unknown): number | undefined => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
 };
 
 function toQuote(raw: RawQuote): Quote | null {
@@ -43,6 +52,13 @@ function toQuote(raw: RawQuote): Quote | null {
     change: Number(raw.change) || 0,
     changePercent: Number(raw.percent_change) || 0,
     currency: raw.currency,
+    // All of these ship in the same response. Reading them costs no extra
+    // request, and they are what let a card say more than "the price".
+    dayLow: num(raw.low),
+    dayHigh: num(raw.high),
+    yearLow: num(raw.fifty_two_week?.low),
+    yearHigh: num(raw.fifty_two_week?.high),
+    marketOpen: raw.is_market_open,
   };
 }
 
