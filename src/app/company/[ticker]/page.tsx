@@ -12,6 +12,7 @@ import { PriceChart } from "@/components/company/price-chart";
 import { AsOf, ErrorState, Skeleton, NumberSkeleton } from "@/components/ui/states";
 import { AlertPanel, type AlertRow } from "@/components/company/alert-panel";
 import { Nav } from "@/components/nav";
+import { SentimentTag } from "@/components/news/sentiment-tag";
 import { Footer } from "@/components/ui/footer";
 import { createClient } from "@/lib/supabase/server";
 
@@ -159,6 +160,7 @@ async function News({ ticker }: { ticker: string }) {
           >
             {a.headline}
           </a>
+          <SentimentTag headline={a.headline} />
           <p className="mt-1.5 font-mono text-[11px] text-[var(--faint)]">
             {a.source} · {new Date(a.publishedAt).toLocaleDateString("en-GB")}
           </p>

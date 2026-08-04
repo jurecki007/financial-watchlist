@@ -333,6 +333,26 @@ signed-in visitor was being shown "Sign in". Identity comes from the header
 middleware already validated, so putting the nav on every page costs no extra
 round-trip.
 
+## Themes
+
+Dark leads; light is the alternative. The light palette is **not an inversion** —
+a flipped dark palette fails the moment contrast is measured. The dark price
+pair scores 1.81 and 2.69 against a light surface, well under the 3:1 floor, so
+light gets its own validated pair (`#0d9488` / `#dc2626`, deutan ΔE 13.1 — better
+separation than the dark pair achieves).
+
+The stored theme is applied by a blocking script in `<head>`, before first
+paint. Applying it in an effect would show one frame of the wrong theme on every
+load, and a white flash on a dark-led product is worse than having no toggle.
+
+## Responsive
+
+Verified at 375 / 768 / 1440 with Playwright, which sets a **real layout
+viewport** — headless Chrome's `--window-size` cropped the output instead, so
+earlier attempts were measuring a wide render through a narrow window and
+proving nothing. Seven tests assert zero horizontal overflow across all eight
+routes; they found the nav at 516px inside a 375px viewport.
+
 ## Optimistic watchlist
 
 Add and remove apply immediately. Two things this forced:

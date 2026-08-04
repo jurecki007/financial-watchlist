@@ -47,6 +47,49 @@
   --foreground: var(--fg);
 }
 
+/* ---------------------------------------------------------------------------
+   Light theme.
+   NOT an inversion. Every value is chosen against the light ground, because a
+   flipped dark palette fails the moment contrast is measured: the dark price
+   pair scores 1.81 and 2.69 against a light surface, well under the 3:1 floor.
+
+   The price pair here was validated separately with the dataviz checker and
+   passes all five checks — deutan ΔE 13.1, better separation than the dark
+   pair manages. Gold darkens too; #d9a441 on near-white is unreadable.
+   --------------------------------------------------------------------------- */
+:root[data-theme="light"] {
+  --ground: #fbfbfa;
+  --raised: #f3f3f0;
+  --fg: #17181a;
+  --dim: #5c5f66;
+  --faint: #83868c;
+
+  --gold: #96690f;
+  --gold-dim: #b8933f;
+
+  --up: #0d9488;
+  --down: #dc2626;
+
+  --rule: #e3e3df;
+  --rule-strong: #cbcbc5;
+}
+
+/* The hero scrim is built from the dark ground; on light it must be rebuilt
+   rather than reused, or the headline sits on a dark smear over a light page. */
+:root[data-theme="light"] .hero-scrim {
+  background: linear-gradient(
+    100deg,
+    rgb(251 251 250 / 0.97) 0%,
+    rgb(251 251 250 / 0.94) 34%,
+    rgb(251 251 250 / 0.62) 58%,
+    rgb(251 251 250 / 0.28) 100%
+  );
+}
+
+:root[data-theme="light"] .hero-fade {
+  background: linear-gradient(to top, rgb(251 251 250 / 1) 0%, rgb(251 251 250 / 0) 100%);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -89,6 +132,15 @@ body {
 .roadmap {
   background: var(--ground);
   color: var(--fg);
+}
+
+/* Chart gridlines are drawn as white-on-dark; on light they must invert or
+   they vanish. lightweight-charts reads these at construction time. */
+:root[data-theme="light"] {
+  --chart-grid: rgb(0 0 0 / 0.06);
+}
+:root {
+  --chart-grid: rgb(255 255 255 / 0.028);
 }
 
 /* The tape: a hairline that fills to its proportion. Width is already correct

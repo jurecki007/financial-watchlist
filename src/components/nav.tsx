@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getSessionUser } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import { Container } from "@/components/ui/shell";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 /**
  * THESIS: instrument chrome, not a website header. It refuses the category
@@ -86,13 +87,18 @@ export async function Nav() {
 
   return (
     <header className="border-b border-[var(--rule)]">
-      <Container className="flex items-center gap-6">
+      <Container className="flex items-center gap-3 sm:gap-6">
         <nav aria-label="Primary" className="contents">
         <Link
           href={user ? "/dashboard" : "/"}
           className="py-[15px] font-mono text-xs tracking-[0.18em] whitespace-nowrap text-[var(--fg)] uppercase transition-colors hover:text-[var(--gold)]"
         >
-          Financial<span className="text-[var(--gold)]">·</span>Watchlist
+          <span className="hidden sm:inline">
+            Financial<span className="text-[var(--gold)]">·</span>Watchlist
+          </span>
+          <span className="sm:hidden">
+            F<span className="text-[var(--gold)]">·</span>W
+          </span>
         </Link>
 
         {/* No hamburger. Two links do not earn a disclosure control, and
@@ -111,7 +117,8 @@ export async function Nav() {
           ))}
         </div>
 
-        <div className="ml-auto flex items-center gap-5">
+        <div className="ml-auto flex items-center gap-3 sm:gap-5">
+          <ThemeToggle />
           {user ? (
             <>
               {/* An account mark rather than the address. A truncated
@@ -128,9 +135,22 @@ export async function Nav() {
               <form action={signOut}>
                 <button
                   type="submit"
-                  className="py-[15px] text-sm whitespace-nowrap text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
+                  aria-label="Sign out"
+                  className="flex items-center py-[15px] text-sm whitespace-nowrap text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
                 >
-                  Sign out
+                  <span className="hidden sm:inline">Sign out</span>
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    className="size-[18px] sm:hidden"
+                  >
+                    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+                    <path d="M10 17l-5-5 5-5" />
+                    <path d="M5 12h11" />
+                  </svg>
                 </button>
               </form>
             </>

@@ -51,12 +51,12 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Contrast verified against the rendered chart, not the bare ground
 - [x] Feature section: watchlist, live charts, price alerts
 - [x] Footer: tech-stack credits, GitHub link, `/roadmap` link
-- [ ] Responsive at 375 / 768 / 1440 — fluid `clamp()` type shipped and `overflow-x: hidden` guards the body, but **not verified**: headless Chrome would not honour the layout viewport, so these need a real device or browser devtools
+- [x] Responsive at 375 / 768 / 1440 — verified with Playwright, which sets a real layout viewport; zero horizontal overflow across all 8 routes
 - [x] Accessibility pass — global `:focus-visible` ring, reduced-motion honoured throughout, colourblind-safe deltas (validated ΔE 10.7 plus filled/hollow candles), `aria-live` on toasts and search status, semantic landmarks. *Contrast verified by calculation, not yet by an automated audit run.*
 
 **Shell**
 - [x] App shell: shared nav across dashboard, company and roadmap, with active-route state and a signed-out variant
-- [ ] Dark-mode toggle — needs a light theme, which the design direction defers behind dark
+- [x] Dark-mode toggle with a purpose-built light theme (not an inversion)
 - [x] Loading / empty / error states as reusable components
 - [x] Toast system (dismissible, deduplicated by error class, accessible via `aria-live`)
 
@@ -90,7 +90,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Company detail page: candlestick chart with crosshair + OHLC readout, key stats (market cap, P/E, 52w range), recent headlines — four independent Suspense boundaries
 
 ### Phase 6 — Polish Pass
-- [ ] Responsive check (mobile/tablet/desktop) — blocked on the same viewport limitation; needs a human with devtools
+- [x] Responsive check (mobile/tablet/desktop) — automated, 7 tests
 - [x] Skeleton loaders on all async data (dashboard cards, price, stats, news)
 - [x] Fault-injection pass — `not_entitled` and `not_found` forced live with real invalid credentials; `rate_limited` and `unavailable` covered by unit tests rather than by burning the daily budget
 - [x] README with architecture + decisions
@@ -108,7 +108,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 | 3 | ~~Search debounce + polished autocomplete UX~~ **shipped in Phase 5** | Low | Medium |
 | 4 | ~~Optimistic UI on watchlist add/remove~~ **shipped** | Low | Medium |
 | 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) — *deferred* | Medium | Medium |
-| 6 | Sentiment tag on news headlines | Medium | Medium |
+| 6 | ~~Sentiment tag on news headlines~~ **shipped** | Medium | Medium |
 | 7 | ~~E2E test (Playwright) for signup → add ticker → view dashboard~~ **shipped — 6 tests** | Medium | High |
 
 **Cutoff reached:** #2 shipped in Phase 2, #1 is the current work. Paper-trading was dropped as scope-risky; the weekly digest is deferred — the per-alert email covers the same scheduled-send story without a second cron.
