@@ -85,7 +85,30 @@ export type Quote = {
   change: number;
   changePercent: number;
   currency?: string;
+  /** Session range. Already in every quote response — costs nothing extra. */
+  dayLow?: number;
+  dayHigh?: number;
+  /** 52-week range. The context that turns a price into a judgement. */
+  yearLow?: number;
+  yearHigh?: number;
+  /** A flat price reads as a bug unless the market is known to be shut. */
+  marketOpen?: boolean;
 };
+
+/**
+ * Where a price sits in a range, 0–1. Returns undefined rather than a
+ * misleading 0 when the range is absent or degenerate — a marker pinned to the
+ * left edge would read as "at its low", which is a claim, not a gap.
+ */
+export function positionInRange(
+  price: number,
+  low?: number,
+  high?: number,
+): number | undefined {
+  if (low === undefined || high === undefined) return undefined;
+  if (!(high > low)) return undefined;
+  return Math.min(1, Math.max(0, (price - low) / (high - low)));
+}
 
 export type Candle = {
   time: string;

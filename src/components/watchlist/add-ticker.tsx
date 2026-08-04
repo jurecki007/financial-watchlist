@@ -39,16 +39,20 @@ function Row({
   meta,
   formAction,
   pending,
+  index,
+  active,
 }: {
   ticker: string;
   name: string;
   meta?: string;
   formAction: (formData: FormData) => void;
   pending: boolean;
+  index: number;
+  active: boolean;
 }) {
   const { optimisticAdd } = useWatchlist();
   return (
-    <li>
+    <li role="none">
       {/* The card appears immediately; the server action confirms it. The
           dispatch must sit inside the action — React only accepts optimistic
           updates within an action's transition. */}
@@ -62,8 +66,13 @@ function Row({
         <input type="hidden" name="company_name" value={name} />
         <button
           type="submit"
+          id={`opt-${index}`}
+          role="option"
+          aria-selected={active}
           disabled={pending}
-          className="flex w-full items-baseline gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--ground)] disabled:opacity-50"
+          className={`flex w-full items-baseline gap-3 px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
+            active ? "bg-[var(--ground)]" : "hover:bg-[var(--ground)]"
+          }`}
         >
           <span className="font-mono text-sm">{ticker}</span>
           <span className="min-w-0 flex-1 truncate text-sm text-[var(--dim)]">
@@ -82,6 +91,9 @@ function Row({
 
 export function AddTicker({ watched = [] }: { watched?: string[] }) {
   const [focused, setFocused] = useState(false);
+  // Which row the keyboard is on. -1 means the field itself.
+  const [active, setActive] = useState(-1);
+  const listRef = useRef<HTMLUListElement>(null);
   const [query, setQuery] = useState("");
   const [matches, setMatches] = useState<SymbolMatch[]>([]);
   const [searching, setSearching] = useState(false);
@@ -163,6 +175,10 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
     return () => clearTimeout(timer);
   }, [query, push]);
 
+  useEffect(() => {
+    setActive(-1);
+  }, [query, focused]);
+
   return (
     // `relative` anchors the overlay; the panel below is absolute so opening
     // it cannot change the height of anything around it.
@@ -176,6 +192,30 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setFocused(true)}
+            role="combobox"
+            aria-expanded={showSuggestions || matches.length > 0}
+            aria-controls="ticker-options"
+            aria-autocomplete="list"
+            aria-activedescendant={active >= 0 ? `opt-${active}` : undefined}
+            onKeyDown={(e) => {
+              const rows = listRef.current?.querySelectorAll("button") ?? [];
+              if (rows.length === 0) return;
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActive((i) => (i + 1) % rows.length);
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActive((i) => (i <= 0 ? rows.length - 1 : i - 1));
+              } else if (e.key === "Enter" && active >= 0) {
+                // Only intercept Enter when a row is highlighted; otherwise the
+                // field should behave like a field.
+                e.preventDefault();
+                (rows[active] as HTMLButtonElement).click();
+              } else if (e.key === "Escape") {
+                setFocused(false);
+                setActive(-1);
+              }
+            }}
             // A click on a suggestion has to land before blur removes it, so
             // the panel closes on the next tick rather than immediately.
             onBlur={() => setTimeout(() => setFocused(false), 150)}
@@ -218,14 +258,16 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
       )}
 
       {showSuggestions && (
-        <ul className={PANEL}>
+        <ul id="ticker-options" role="listbox" ref={listRef} className={PANEL}>
           {/* Labelled, so it never reads as a result of what was typed. */}
           <li className="border-b border-[var(--rule)] px-3 py-2 font-mono text-[11px] tracking-[0.14em] text-[var(--faint)] uppercase">
             Popular
           </li>
-          {suggestions.map((p) => (
+          {suggestions.map((p, i) => (
             <Row
               key={p.ticker}
+              index={i}
+              active={active === i}
               ticker={p.ticker}
               name={p.name}
               formAction={formAction}
@@ -236,10 +278,12 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
       )}
 
       {matches.length > 0 && (
-        <ul className={`${PANEL} max-h-72 overflow-y-auto`}>
-          {matches.map((m) => (
+        <ul id="ticker-options" role="listbox" ref={listRef} className={`${PANEL} max-h-72 overflow-y-auto`}>
+          {matches.map((m, i) => (
             <Row
               key={`${m.ticker}-${m.exchange ?? ""}`}
+              index={i}
+              active={active === i}
               ticker={m.ticker}
               name={m.name}
               meta={m.exchange}
