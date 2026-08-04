@@ -5,6 +5,7 @@ import { addTicker, type WatchlistState } from "@/app/dashboard/actions";
 import type { SymbolMatch } from "@/lib/market-data";
 import { useToast } from "@/components/ui/toast";
 import { suggestionsFor } from "@/lib/popular-tickers";
+import { useWatchlist } from "@/components/watchlist/optimistic";
 
 /**
  * Ticker search and add.
@@ -19,6 +20,18 @@ import { suggestionsFor } from "@/lib/popular-tickers";
  * one. That reordering bug is invisible on a fast connection and constant on a
  * slow one.
  */
+/**
+ * Every panel that can appear under the field shares this. All of them are
+ * absolutely positioned: anything in normal flow here changes the height of
+ * the header and shoves the card grid down the page, which is what made
+ * clicking the field feel like the layout exploding.
+ *
+ * The shadow is what makes it read as a layer over the page rather than a
+ * block that grew out of the input.
+ */
+const PANEL =
+  "absolute top-[calc(100%+0.5rem)] right-0 left-0 z-30 border border-[var(--rule-strong)] bg-[var(--raised)] shadow-xl shadow-black/50";
+
 /** Shared by suggestions and search results so the two cannot diverge. */
 function Row({
   ticker,
@@ -33,9 +46,18 @@ function Row({
   formAction: (formData: FormData) => void;
   pending: boolean;
 }) {
+  const { optimisticAdd } = useWatchlist();
   return (
     <li>
-      <form action={formAction}>
+      {/* The card appears immediately; the server action confirms it. The
+          dispatch must sit inside the action — React only accepts optimistic
+          updates within an action's transition. */}
+      <form
+        action={(formData: FormData) => {
+          optimisticAdd(ticker, name);
+          formAction(formData);
+        }}
+      >
         <input type="hidden" name="ticker" value={ticker} />
         <input type="hidden" name="company_name" value={name} />
         <button
@@ -142,7 +164,9 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
   }, [query, push]);
 
   return (
-    <div>
+    // `relative` anchors the overlay; the panel below is absolute so opening
+    // it cannot change the height of anything around it.
+    <div className="relative">
       <label className="block">
         <span className="mb-2 block text-sm text-[var(--dim)]">
           Add a company
@@ -182,17 +206,19 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
       {state?.error && (
         <p
           role="alert"
-          className="mt-3 border-l-2 border-[var(--down)] bg-[var(--raised)] px-3 py-2 text-sm"
+          className={`${PANEL} border-l-2 border-l-[var(--down)] px-3 py-2 text-sm`}
         >
           {state.error}
         </p>
       )}
       {searchError && (
-        <p className="mt-3 text-sm text-[var(--dim)]">{searchError}</p>
+        <p className={`${PANEL} px-3 py-2 text-sm text-[var(--dim)]`}>
+          {searchError}
+        </p>
       )}
 
       {showSuggestions && (
-        <ul className="mt-2 border border-[var(--rule)] bg-[var(--raised)]">
+        <ul className={PANEL}>
           {/* Labelled, so it never reads as a result of what was typed. */}
           <li className="border-b border-[var(--rule)] px-3 py-2 font-mono text-[11px] tracking-[0.14em] text-[var(--faint)] uppercase">
             Popular
@@ -210,7 +236,7 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
       )}
 
       {matches.length > 0 && (
-        <ul className="mt-2 max-h-64 overflow-y-auto border border-[var(--rule)] bg-[var(--raised)]">
+        <ul className={`${PANEL} max-h-72 overflow-y-auto`}>
           {matches.map((m) => (
             <Row
               key={`${m.ticker}-${m.exchange ?? ""}`}
@@ -224,11 +250,14 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
         </ul>
       )}
 
-      {query.trim().length >= 2 && !searching && matches.length === 0 && !searchError && (
-        <p className="mt-3 text-sm text-[var(--dim)]">
-          No companies match “{query.trim()}”.
-        </p>
-      )}
+      {query.trim().length >= 2 &&
+        !searching &&
+        matches.length === 0 &&
+        !searchError && (
+          <p className={`${PANEL} px-3 py-2 text-sm text-[var(--dim)]`}>
+            No companies match “{query.trim()}”.
+          </p>
+        )}
     </div>
   );
 }

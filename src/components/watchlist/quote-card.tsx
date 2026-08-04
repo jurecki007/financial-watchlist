@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { removeTicker } from "@/app/dashboard/actions";
+import { useWatchlist } from "@/components/watchlist/optimistic";
 import { NumberSkeleton, Skeleton } from "@/components/ui/states";
 import type { Quote } from "@/lib/market-data";
 
@@ -45,12 +48,15 @@ export function QuoteCard({
   ticker,
   companyName,
   quote,
+  pending,
 }: {
   ticker: string;
   companyName?: string | null;
   quote?: Quote;
+  pending?: boolean;
 }) {
   const up = (quote?.changePercent ?? 0) >= 0;
+  const { optimisticRemove } = useWatchlist();
 
   return (
     <Frame>
@@ -68,7 +74,16 @@ export function QuoteCard({
         </Link>
         {/* Remove is a form, not a link: it mutates, so it must not be a GET
             that a prefetcher could fire. */}
-        <form action={removeTicker}>
+        {/* The optimistic dispatch has to happen INSIDE the action, not in
+            onSubmit: React only accepts optimistic updates within an action's
+            transition, and dispatching outside one silently dropped the
+            update AND stopped the server action from running. */}
+        <form
+          action={async (formData) => {
+            optimisticRemove(ticker);
+            await removeTicker(formData);
+          }}
+        >
           <input type="hidden" name="ticker" value={ticker} />
           <button
             type="submit"
@@ -106,6 +121,16 @@ export function QuoteCard({
               </span>
             </div>
           </>
+        ) : pending ? (
+          // Added a moment ago, no quote fetched yet. Never invent a number:
+          // guessing a price in a product about prices is the one lie this UI
+          // must not tell.
+          <div>
+            <NumberSkeleton digits={8} className="h-[1.6rem]" />
+            <p className="mt-2 font-mono text-[11px] text-[var(--faint)]">
+              fetching price…
+            </p>
+          </div>
         ) : (
           // Quote missing but the row exists: the provider skipped this symbol
           // in a batch. Say so on the card rather than failing the whole grid.

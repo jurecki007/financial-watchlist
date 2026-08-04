@@ -62,12 +62,18 @@ test("search, add a company, and see it on the dashboard", async ({
   await expect(card).toBeVisible();
   await expect(page.getByText("Nothing tracked yet")).toBeHidden();
 
-  // Confirm it really persisted rather than only appearing optimistically.
-  const { data } = await admin
-    .from("watchlist_items")
-    .select("ticker")
-    .eq("user_id", user.id);
-  expect(data?.map((r) => r.ticker)).toContain("AAPL");
+  // The card appears optimistically, so its presence proves nothing about the
+  // database. Poll the real rows instead — with optimistic UI the screen is no
+  // longer evidence of persistence.
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from("watchlist_items")
+        .select("ticker")
+        .eq("user_id", user.id);
+      return data?.map((r) => r.ticker) ?? [];
+    })
+    .toContain("AAPL");
 });
 
 test("a watched company links through to its detail page", async ({
@@ -99,13 +105,17 @@ test("removing a company clears it from the list and the database", async ({
     .getByRole("button", { name: "Remove NVDA from your watchlist" })
     .click();
 
+  // Disappears optimistically, so wait on the database rather than the DOM.
   await expect(page.getByText("Nothing tracked yet")).toBeVisible();
-
-  const { data } = await admin
-    .from("watchlist_items")
-    .select("ticker")
-    .eq("user_id", user.id);
-  expect(data).toHaveLength(0);
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from("watchlist_items")
+        .select("ticker")
+        .eq("user_id", user.id);
+      return data?.length ?? -1;
+    })
+    .toBe(0);
 });
 
 test("signing out revokes access to the dashboard", async ({
@@ -168,11 +178,15 @@ test("a popular suggestion can be added in one click", async ({
     page.getByRole("link", { name: /NVDA/ }).first(),
   ).toBeVisible();
 
-  const { data } = await admin
-    .from("watchlist_items")
-    .select("ticker")
-    .eq("user_id", user.id);
-  expect(data?.map((r) => r.ticker)).toContain("NVDA");
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from("watchlist_items")
+        .select("ticker")
+        .eq("user_id", user.id);
+      return data?.map((r) => r.ticker) ?? [];
+    })
+    .toContain("NVDA");
 });
 
 test("news and alerts are reachable from the nav and gated when signed out", async ({
@@ -227,9 +241,13 @@ test("alerts page lists what a company page armed", async ({
   // Deleting from here must actually remove the row, not just hide it.
   await page.getByRole("button", { name: "Delete the AAPL alert" }).click();
   await expect(page.getByText("No alerts set")).toBeVisible();
-  const { data } = await admin
-    .from("price_alerts")
-    .select("id")
-    .eq("user_id", user.id);
-  expect(data).toHaveLength(0);
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from("price_alerts")
+        .select("id")
+        .eq("user_id", user.id);
+      return data?.length ?? -1;
+    })
+    .toBe(0);
 });

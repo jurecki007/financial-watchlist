@@ -106,7 +106,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 | 1 | ~~Price alerts (threshold-based) + Resend email via scheduled edge function~~ **shipped** | Medium | High — async/event-driven thinking |
 | 2 | ~~RLS tests proving cross-user isolation — 12 shipped in Phase 2~~ | Low | High — rarely done, strong signal |
 | 3 | ~~Search debounce + polished autocomplete UX~~ **shipped in Phase 5** | Low | Medium |
-| 4 | Optimistic UI on watchlist add/remove | Low | Medium |
+| 4 | ~~Optimistic UI on watchlist add/remove~~ **shipped** | Low | Medium |
 | 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) — *deferred* | Medium | Medium |
 | 6 | Sentiment tag on news headlines | Medium | Medium |
 | 7 | ~~E2E test (Playwright) for signup → add ticker → view dashboard~~ **shipped — 6 tests** | Medium | High |
