@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getNews, FAILURE_COPY, type Article } from "@/lib/market-data";
 import { Nav } from "@/components/nav";
+import { SentimentTag } from "@/components/news/sentiment-tag";
 import { Footer } from "@/components/ui/footer";
 import { Container } from "@/components/ui/shell";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
@@ -83,6 +84,7 @@ async function Feed({ rows }: { rows: Row[] }) {
                 >
                   {a.headline}
                 </a>
+                <SentimentTag headline={a.headline} />
                 <p className="mt-1.5 font-mono text-[11px] text-[var(--faint)]">
                   {a.source} ·{" "}
                   {new Date(a.publishedAt).toLocaleDateString("en-GB", {

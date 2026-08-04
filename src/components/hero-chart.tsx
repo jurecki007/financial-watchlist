@@ -48,6 +48,7 @@ export function HeroChart() {
         const token = (name: string, fallback: string) =>
           css.getPropertyValue(name).trim() || fallback;
 
+        const t2 = token;
         const up = token("--up", "#2dd4bf");
         const down = token("--down", "#f87171");
 
@@ -61,7 +62,7 @@ export function HeroChart() {
           height: el.clientHeight,
           grid: {
             vertLines: { visible: false },
-            horzLines: { color: "rgba(255,255,255,0.028)" },
+            horzLines: { color: t2("--chart-grid", "rgba(255,255,255,0.028)") },
           },
           // Axes off. This is an ambient demonstration, not an instrument —
           // price and date labels invite reading precise values the visitor has

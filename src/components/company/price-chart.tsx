@@ -48,7 +48,7 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
           height: el.clientHeight,
           grid: {
             vertLines: { visible: false },
-            horzLines: { color: "rgba(255,255,255,0.04)" },
+            horzLines: { color: t("--chart-grid", "rgba(255,255,255,0.04)") },
           },
           rightPriceScale: { borderColor: t("--rule", "#23262b") },
           timeScale: { borderColor: t("--rule", "#23262b") },
