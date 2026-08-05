@@ -55,6 +55,7 @@ check the runtime log for `[market-data] … is not set`.
 | `npm run test:market` | market-data error classification |
 | `npm run test:toast` | toast deduplication by failure class |
 | `npm run test:schema` | JSON-LD graph + `</script>` escape guard |
+| `npm run test:history` | candle-history cache keying and eviction |
 | `npm run test` | every suite above, RLS last |
 
 The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
@@ -154,6 +155,45 @@ The landing page hero renders from a committed fixture
 live call. The highest-traffic route is the least defensible place to spend an
 800-call daily budget — and it means the first thing anyone sees can never be an
 error state, whatever the providers are doing.
+
+### Chart history
+
+The company chart ships **750 daily bars** (about three years) and shows the most
+recent 180 of them. Panning within 20 bars of the left edge fetches the next 750
+through [`/api/candles`](src/app/api/candles/route.ts) and prepends them; reaching
+the start of a listing's history stops the requests and the readout says so.
+
+The three numbers are decided against different constraints, which is why they are
+not one number:
+
+- **750 fetched** is a *payload* decision. Depth is billed per request — a response
+  carries `api-credits-request: 1` whether it holds 180 bars or 5000 — so the cost
+  of depth is bytes, not credits: ~15kB at 180, ~62kB at 750, ~400kB at 5000.
+- **180 shown** is a *legibility* decision. 750 candles in a 22rem plot are about a
+  pixel wide each, which is a smear. The extra depth exists to be panned into.
+  Using `fitContent()` here would also park the visible range at logical index 0,
+  inside the prefetch margin, so every page load would immediately fetch a second
+  page nobody asked for.
+- **20 bars of margin** is a *latency* decision — far enough out that the fetch
+  usually lands before the pan reaches the end of what is drawn.
+
+Paging backwards uses Twelve Data's `end_date`, which is **exclusive**: asking for
+bars before `2023-08-09` returns `2023-08-08` and earlier, so consecutive pages
+abut without overlapping. Verified against the live API rather than assumed — a
+duplicate timestamp makes `lightweight-charts` render wrong rather than throw, so
+the merge dedupes by time regardless.
+
+Those historical pages end at a fixed past date and can never change, so they get
+an in-memory cache ([`history-cache.ts`](src/lib/market-data/history-cache.ts))
+rather than a Postgres table: there is no staleness to reason about, only whether
+we ask twice. The leading page is never cached there — it contains today's still-
+moving bar.
+
+**Prepending does not move the view**, because `setData` re-anchors the viewport by
+time rather than by logical index. That is library behaviour, not something the
+component enforces, so it is pinned by an e2e test rather than by code: replacing
+that call with `fitContent()` slides the user from 2023-10-31 to 2023-02-23
+mid-pan, and [`chart-history.spec.ts`](e2e/chart-history.spec.ts) fails.
 
 ## Database
 

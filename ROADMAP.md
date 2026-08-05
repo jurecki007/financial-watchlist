@@ -103,6 +103,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Charts follow the theme — both `lightweight-charts` instances observe `data-theme` and re-apply their palette, since a canvas inherits no CSS. Previously a switch left dark grid lines on the light page
 - [x] Hero draw-in re-timed to 4.2s and driven by elapsed time, not frames — the old per-frame bar count ran the animation twice as fast on a 120Hz display as on a 60Hz one
 - [x] `misconfigured` split out of `not_entitled` (401 vs 403) — a deployment with no API key was telling visitors the data sat behind a paid plan; missing keys now fail before the request and name the variable in the server log
+- [x] Chart history — leading page raised 180 → 750 bars, and panning near the left edge pages in the next 750 through an auth-gated `/api/candles`. Immutable historical pages are cached in memory; end-of-history stops the requests and is stated in the readout
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 

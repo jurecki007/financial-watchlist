@@ -78,8 +78,22 @@ async function Price({ ticker }: { ticker: string }) {
   );
 }
 
+/**
+ * 750 bars — about three years of sessions, against the 180 (roughly eight
+ * months) this used to ship.
+ *
+ * The number is a payload decision, not an API one. Depth is billed per
+ * request, so 750 bars and 180 cost the same single credit; what 750 costs is
+ * ~62kB of JSON in the RSC payload against ~15kB. The provider would serve
+ * 5000 for that same credit, but at ~400kB it would dominate the page.
+ *
+ * Anything earlier is paged in by the chart on scroll, so this is the point at
+ * which the first pan stops being the common case — not a ceiling on history.
+ */
+const LEADING_PAGE = 750;
+
 async function Chart({ ticker }: { ticker: string }) {
-  const res = await getCandles(ticker, { days: 180 });
+  const res = await getCandles(ticker, { days: LEADING_PAGE });
   if (!res.ok) return <Failure reason={res.reason} />;
   return <PriceChart candles={res.data} ticker={ticker} />;
 }

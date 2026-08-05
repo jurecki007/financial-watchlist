@@ -110,14 +110,25 @@ type RawSeries = {
 
 export async function getCandles(
   ticker: string,
-  { days = 180 }: { days?: number } = {},
+  { days = 180, before }: { days?: number; before?: string } = {},
 ): Promise<Result<Candle[]>> {
   const absent = missingKey("TWELVE_DATA_API_KEY", key());
   if (absent) return absent;
 
+  // `end_date` pages backwards, and it is EXCLUSIVE: asking for bars before
+  // 2023-08-09 returns 2023-08-08 and earlier, so consecutive pages abut
+  // without overlapping. Verified against the live API rather than assumed —
+  // an off-by-one here hands lightweight-charts a duplicate timestamp, which
+  // it renders wrong rather than rejecting.
+  //
+  // Depth costs nothing extra: the response carries `api-credits-request: 1`
+  // whether it returns 180 bars or 5000, so paging is billed per request. The
+  // binding constraint is the 8/min request ceiling, not the data volume.
+  const window = before ? `&end_date=${encodeURIComponent(before)}` : "";
+
   const url = `${BASE}/time_series?symbol=${encodeURIComponent(
     normalizeTicker(ticker),
-  )}&interval=1day&outputsize=${days}&apikey=${key()}`;
+  )}&interval=1day&outputsize=${days}${window}&apikey=${key()}`;
 
   const res = await getJson<RawSeries>(url, { label: "twelvedata/time_series" });
   if (!res.ok) return res;
