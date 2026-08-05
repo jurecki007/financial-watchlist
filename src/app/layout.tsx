@@ -28,6 +28,16 @@ export const metadata: Metadata = {
   title: "Financial Watchlist",
   description:
     "Track companies, watch prices and charts, read the news that moves them.",
+  // The icon lives in `public/`, not at `app/favicon.ico`, so it has to be
+  // declared: Next emits <link rel="icon"> only for the app-router file
+  // convention, and a file in `public/` is served but never announced.
+  //
+  // Both locations at once is the trap. `public/` wins the URL while the app
+  // file still generates the tag, so the markup describes one file and the
+  // server sends another — verified by serving a marker from `public/` and
+  // watching it come back under the app file's declared type and sizes. One
+  // location, one source of truth.
+  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({

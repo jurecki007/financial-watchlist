@@ -105,6 +105,7 @@ news_cache        (ticker, article_json, fetched_at)
 - **`SITE_URL` (`lib/site.ts`) is a hardcoded constant, not an env var.** Preview deploys must canonicalise to production, so resolving against `VERCEL_URL` would declare each throwaway preview the authoritative copy of every page. An unset variable would fail silently to localhost, which is worse than a value that is wrong loudly.
 - **A page is in `sitemap.ts` only if it is indexable.** Listing a `noindex` URL asks Google to index what we simultaneously told it not to. Auth-gated routes redirect to `/login`, which carries the `noindex`, so they stay out of both the sitemap and `robots.txt` — blocking them in robots.txt would hide that directive rather than reinforce it.
 - **Anything interpolated into a `<script type="application/ld+json">` goes through `serialiseJsonLd`**, which escapes `<` so a value can never close the block early. Values are static constants today; the guard is for the edit that isn't.
+- **Static assets live in `public/`, and the favicon lives in exactly one place.** `public/favicon.ico`, never also `app/favicon.ico`. Next accepts both without error, but `public/` wins the URL while the app-router file still emits the `<link rel="icon">` tag — the markup then advertises one file's type and sizes while the server sends another's bytes, silently and through a clean build. Because the icon sits in `public/`, its `<link>` is declared explicitly in `layout.tsx`; Next auto-announces the app-router convention only.
 
 ## Working Practices
 

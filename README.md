@@ -60,6 +60,30 @@ check the runtime log for `[market-data] … is not set`.
 The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
 coexist with other Supabase projects on the same machine.
 
+## Static assets
+
+Everything served verbatim lives in [`public/`](public/), reachable at the URL matching its
+path — `public/favicon.ico` → `/favicon.ico`.
+
+**The favicon lives here and not at `app/favicon.ico`, and it must be in exactly one of
+them.** Next supports both, and with both present it does not complain: `public/` wins the
+URL while the app-router file still generates the `<link rel="icon">` tag, so the markup
+advertises one file's type and dimensions while the server returns a different file's
+bytes. That mismatch is silent and survives a clean build. Because the icon now sits in
+`public/`, the `<link>` is declared explicitly in [`layout.tsx`](src/app/layout.tsx) —
+Next announces the app-router convention only, and a file in `public/` is served but never
+announced.
+
+Two behaviours worth knowing when swapping an asset, both verified rather than assumed:
+
+- **Replacing the contents** of a file that already existed at build time is picked up
+  immediately — no rebuild.
+- **Adding a new filename** is a 404 until the next `npm run build`; the set of public
+  paths is fixed when the build runs.
+
+On Vercel either change needs a redeploy regardless, since `public/` is uploaded as static
+assets at build time.
+
 ## Watchlist
 
 Add and remove are server actions. What is **absent** from them is the point:
