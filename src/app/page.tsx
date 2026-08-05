@@ -14,14 +14,16 @@
  *
  * FORM: full-bleed chart hero — the direction pinned in CLAUDE.md.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { HeroChart } from "@/components/hero-chart";
 import fixture from "@/lib/fixtures/xau-daily.json";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Financial Watchlist — track the companies you care about",
   description:
     "Prices, charts and the news that moves them, for the companies you actually follow.",
+  alternates: { canonical: "/" },
 };
 
 const bars = fixture.bars as { close: number }[];

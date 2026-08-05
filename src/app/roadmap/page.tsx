@@ -35,6 +35,7 @@ export const metadata: Metadata = {
   title: "Roadmap — Financial Watchlist",
   description:
     "What is built, what is not, and what the unbuilt work is waiting on.",
+  alternates: { canonical: "/roadmap" },
 };
 
 /** Marker shapes. State reads without colour, which colourblind users need

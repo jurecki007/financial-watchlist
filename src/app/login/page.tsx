@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
 import { signIn, signInWithGoogle } from "@/app/auth/actions";
 import { AuthShell, Notice } from "@/components/auth/auth-shell";
 
-export const metadata = { title: "Sign in — Financial Watchlist" };
+// The canonical is param-free on purpose. The auth gate redirects here as
+// /login?next=%2Fdashboard, /login?next=%2Fnews and so on, so this page has as
+// many URL variants as there are protected routes; they are all the same page.
+export const metadata: Metadata = {
+  title: "Sign in — Financial Watchlist",
+  alternates: { canonical: "/login" },
+};
 
 const CALLBACK_ERRORS: Record<string, string> = {
   oauth: "Google sign-in couldn't be started. Try again, or use your email.",

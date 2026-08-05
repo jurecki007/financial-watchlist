@@ -94,6 +94,10 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Skeleton loaders on all async data (dashboard cards, price, stats, news)
 - [x] Fault-injection pass — `not_entitled` and `not_found` forced live with real invalid credentials; `rate_limited` and `unavailable` covered by unit tests rather than by burning the daily budget
 - [x] README with architecture + decisions
+- [x] Canonical URLs + `metadataBase` — previews canonicalise to production, `?next=` variants collapse to one URL
+- [ ] `robots.txt` + `sitemap.xml` — neither exists; both currently 404
+- [ ] `noindex` on `/login` and `/signup` — thin auth pages, no search value
+- [ ] Structured data — `WebSite` + `Organization` JSON-LD, none on the site today
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 

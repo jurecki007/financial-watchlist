@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
 import { signUp, signInWithGoogle } from "@/app/auth/actions";
 import { AuthShell } from "@/components/auth/auth-shell";
 
-export const metadata = { title: "Create account — Financial Watchlist" };
+// Param-free for the same reason as /login: ?next= variants are one page.
+export const metadata: Metadata = {
+  title: "Create account — Financial Watchlist",
+  alternates: { canonical: "/signup" },
+};
 
 export default async function SignUpPage({
   searchParams,
