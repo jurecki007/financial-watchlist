@@ -18,6 +18,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HeroChart } from "@/components/hero-chart";
 import fixture from "@/lib/fixtures/xau-daily.json";
+import { landingPageGraph, serialiseJsonLd } from "@/lib/structured-data";
 
 export const metadata: Metadata = {
   title: "Financial Watchlist — track the companies you care about",
@@ -44,6 +45,19 @@ function Feature({ title, body }: { title: string; body: string }) {
 export default function Home() {
   return (
     <main>
+      {/*
+        Server-rendered, not injected on the client. Google's December 2025
+        JavaScript SEO guidance notes that structured data added by script is
+        subject to delayed processing; this page is static, so there is nothing
+        to gain by deferring it and a queue to sit in if we did.
+
+        When CSP lands (Phase 3/6, see next.config.ts) this needs a nonce, as
+        does the theme script in layout.tsx.
+      */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serialiseJsonLd(landingPageGraph()) }}
+      />
       <section className="relative min-h-[92vh] overflow-hidden">
         <HeroChart />
 

@@ -97,7 +97,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Canonical URLs + `metadataBase` — previews canonicalise to production, `?next=` variants collapse to one URL
 - [x] `robots.txt` + `sitemap.xml` — all crawlers allowed including AI; sitemap lists only the two indexable URLs
 - [x] `noindex` on `/login` and `/signup` — thin auth pages; `follow` kept so the crawl passes through
-- [ ] Structured data — `WebSite` + `Organization` JSON-LD, none on the site today
+- [x] Structured data — `WebSite` + `Person` JSON-LD, server-rendered; 7 tests, escape validated by breaking it
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 

@@ -44,7 +44,9 @@ Nothing reads the env vars yet, so the app builds and runs with `.env.local` emp
 | `npm run test:e2e` | Playwright journey against the production bundle |
 | `npm run test:routes` | auth-gate coverage (no server needed) |
 | `npm run test:market` | market-data error classification |
-| `npm run test` | both suites |
+| `npm run test:toast` | toast deduplication by failure class |
+| `npm run test:schema` | JSON-LD graph + `</script>` escape guard |
+| `npm run test` | every suite above, RLS last |
 
 The local Supabase stack runs on ports `544xx` rather than the default `543xx`, so it can
 coexist with other Supabase projects on the same machine.
