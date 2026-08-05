@@ -3,8 +3,10 @@ import type { NextConfig } from "next";
 /**
  * Baseline security headers.
  *
- * Vercel already sends HSTS, so that is not repeated here. These four cover the
- * cheap, unambiguous wins that need no knowledge of the page's contents.
+ * HSTS is now set here rather than left to Vercel. Vercel's default carries a
+ * two-year max-age but no `includeSubDomains` and no `preload`, and those two
+ * directives are the ones that need an owner's decision rather than a
+ * platform default.
  *
  * Content-Security-Policy is deliberately ABSENT. A useful CSP for Next.js
  * needs per-request nonces threaded through the App Router, and a guessed-at
@@ -13,6 +15,23 @@ import type { NextConfig } from "next";
  * exist — see the Phase 6 fault-injection item in ROADMAP.md.
  */
 const securityHeaders = [
+  // Two years, covering this host and anything beneath it.
+  //
+  // Scope is narrower than it looks: a header served from
+  // financial-demo.nyxiontech.com binds that host and *.financial-demo...,
+  // NOT sibling subdomains of nyxiontech.com. Those are governed by whatever
+  // they serve themselves, so this cannot break an unrelated subdomain.
+  //
+  // `preload` is a request to be baked into browser binaries, and it does
+  // nothing on its own — the host must additionally be submitted and accepted
+  // at hstspreload.org. Until that submission happens this directive is inert.
+  // It is stated here because removal from the list takes months once granted,
+  // so the intent belongs in version control where it can be argued with,
+  // rather than being flipped on in a dashboard.
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
   // This app renders account-specific financial data; there is no legitimate
   // reason to embed it in a frame, and clickjacking a watchlist mutation is
   // a real (if unglamorous) attack.

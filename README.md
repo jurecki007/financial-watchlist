@@ -243,9 +243,19 @@ the layers that matter most are the ones that run *before* the push.
 the rules apply to admins too.
 
 Response headers set in [`next.config.ts`](next.config.ts): `X-Frame-Options`,
-`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. Vercel supplies HSTS.
-`Referrer-Policy` is the load-bearing one here — a full-URL referrer would leak routes like
-`/company/AAPL` to linked-out news publishers, disclosing a user's private watchlist.
+`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`,
+`Strict-Transport-Security`. `Referrer-Policy` is the load-bearing one here — a full-URL
+referrer would leak routes like `/company/AAPL` to linked-out news publishers, disclosing a
+user's private watchlist.
+
+HSTS is set here rather than left to Vercel's default, which carries the same two-year
+`max-age` but neither `includeSubDomains` nor `preload`. Its scope is narrower than it
+reads: served from `financial-demo.nyxiontech.com`, it binds that host and anything below
+it, not sibling subdomains of `nyxiontech.com`. **`preload` is inert until the host is
+submitted to and accepted by [hstspreload.org](https://hstspreload.org) — the directive
+alone enrols nothing.** It is committed rather than toggled in a dashboard because removal
+from the browser preload list takes months, so the intent should live somewhere it can be
+argued with.
 
 ## Architecture, and why
 
