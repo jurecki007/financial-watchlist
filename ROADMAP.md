@@ -98,6 +98,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] `robots.txt` + `sitemap.xml` — all crawlers allowed including AI; sitemap lists only the two indexable URLs
 - [x] `noindex` on `/login` and `/signup` — thin auth pages; `follow` kept so the crawl passes through
 - [x] Structured data — `WebSite` + `Person` JSON-LD, server-rendered; 7 tests, escape validated by breaking it
+- [x] HSTS with `includeSubDomains` + `preload` — set in `next.config.ts`; preload still needs submitting at hstspreload.org
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 

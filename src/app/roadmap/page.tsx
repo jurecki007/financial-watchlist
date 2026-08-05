@@ -29,6 +29,14 @@ import { Footer } from "@/components/ui/footer";
 // a signed-in visitor was shown "Sign in". The roadmap content still comes
 // from a file read, so rendering per request costs a filesystem hit, not a
 // network one.
+//
+// Revisited during the SEO pass, and kept. This is the site's richest
+// indexable page and it is served uncached, which is a real TTFB cost. Paying
+// it down means moving the session-aware nav client-side, which trades that
+// cost for a nav that flickers signed-out → signed-in on every load. On a
+// two-page indexable surface with no field data to show the TTFB is hurting
+// anything, the flicker is the worse defect. Worth reopening if CrUX ever
+// reports an LCP problem here.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
