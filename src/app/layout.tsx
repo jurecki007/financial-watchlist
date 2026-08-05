@@ -46,7 +46,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    // The font variables belong on <html>, not <body>.
+    //
+    // `@theme` in globals.css declares `--font-sans: var(--font-geist-sans)`,
+    // and a custom property's var() references resolve where that property is
+    // computed — at `:root`. With the next/font classes on <body>,
+    // `--font-geist-sans` did not exist at `:root`, so `--font-sans` computed
+    // to guaranteed-invalid, `font-family: var(--font-sans), …` was dropped
+    // whole, and every sans surface on the site fell through to Tailwind's
+    // preflight system stack. Geist was downloaded on every page load and
+    // applied to nothing.
+    <html
+      lang="en"
+      data-theme="dark"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable}`}
+    >
       <head>
         {/*
           Runs before first paint. Applying the stored theme in an effect would
@@ -59,9 +74,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
