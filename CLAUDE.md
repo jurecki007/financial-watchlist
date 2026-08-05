@@ -26,6 +26,15 @@ Do not substitute libraries in this list without asking first — the stack itse
 1. **Never call a market-data provider from the client.** All external API calls go through Next.js server routes (`app/api/...` or route handlers) so the API keys never reach the browser and responses can be cached/rate-limited server-side.
 2. **Providers sit behind one typed interface.** `lib/market-data/` exposes `getQuote`, `getTimeSeries`, `searchSymbols`, `getFundamentals`, `getNews` — callers never know or care which vendor answers. Vendor-specific code stays in `lib/market-data/providers/`, and the cache layer wraps the interface, not the individual vendors.
 3. **Cache external data.** Quotes and news get written to `quote_cache` / `news_cache` tables (or in-memory with a short TTL for local dev) before being re-fetched. Both free tiers have strict rate limits — treat every request as expensive. Twelve Data's 8/min is the binding constraint: batch dashboard quotes into a single comma-separated `/quote` call rather than one request per card.
+3b. **Paginated provider data is cached by the page's own identity.** Historical
+   candle pages end at a fixed past date and are therefore immutable — they are
+   keyed by `ticker:before:size` and held in memory, not written to a table,
+   because there is no staleness to reason about and nothing to persist. The
+   *leading* page is never cached that way: it contains today's still-moving bar.
+   Anything the browser can trigger repeatedly — scroll-driven paging especially —
+   goes through an authenticated route with a bounded page size, since an open
+   proxy to a metered API is somebody else's free tier.
+
 4. **RLS on everything user-owned.** Every table holding per-user data (`watchlist_items`, `price_alerts`) must have RLS enabled with a policy of `user_id = auth.uid()` on select/insert/update/delete. No table should rely on application-layer checks alone.
 5. **`profiles` row is created via a Postgres trigger** on `auth.users` insert — never create it manually from the client.
 6. **Every async UI surface needs three states**: loading (skeleton), empty (helpful copy + CTA), and error (retry affordance). Don't ship a screen with only the happy path.

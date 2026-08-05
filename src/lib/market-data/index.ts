@@ -7,6 +7,7 @@
  * touches this directory only.
  */
 import { readCache, throughCache, writeCache } from "./cache.ts";
+import { historyKey, readHistory, writeHistory } from "./history-cache.ts";
 import * as twelveData from "./providers/twelve-data.ts";
 import * as finnhub from "./providers/finnhub.ts";
 import {
@@ -95,12 +96,29 @@ export async function getQuote(ticker: string): Promise<Result<Quote>> {
   return ok(q, { asOf: res.asOf, stale: res.stale });
 }
 
-/** Chart data. Twelve Data owns this — Finnhub gates candles behind a paid plan. */
-export function getCandles(
+/**
+ * Chart data. Twelve Data owns this — Finnhub gates candles behind a paid plan.
+ *
+ * `before` pages backwards for the chart's load-older-on-scroll. Those pages
+ * end at a fixed past date and are therefore immutable, which is why they get
+ * the in-memory cache and the leading page does not: the leading page contains
+ * today's bar, which is still moving.
+ */
+export async function getCandles(
   ticker: string,
-  opts?: { days?: number },
+  opts?: { days?: number; before?: string },
 ): Promise<Result<Candle[]>> {
-  return twelveData.getCandles(ticker, opts);
+  const { days = 180, before } = opts ?? {};
+
+  if (!before) return twelveData.getCandles(ticker, { days });
+
+  const key = historyKey(normalizeTicker(ticker), before, days);
+  const cached = readHistory(key);
+  if (cached) return ok(cached);
+
+  const res = await twelveData.getCandles(ticker, { days, before });
+  if (res.ok) writeHistory(key, res.data);
+  return res;
 }
 
 /** Autocomplete. Not cached: queries are unbounded and rarely repeat. */
