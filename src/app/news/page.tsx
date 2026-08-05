@@ -80,12 +80,18 @@ async function Feed({ rows }: { rows: Row[] }) {
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[0.95rem] leading-snug transition-colors hover:text-[var(--gold)]"
+                  // Same type correction as the company page's Recent
+                  // coverage. The two-column list structure here is left alone
+                  // — the ticker gutter and the rules are doing real work
+                  // across 60 mixed-company rows, which is not the problem
+                  // that panel had.
+                  className="text-base leading-relaxed transition-colors hover:text-[var(--gold)]"
                 >
                   {a.headline}
                 </a>
                 <SentimentTag headline={a.headline} />
-                <p className="mt-1.5 font-mono text-[11px] text-[var(--faint)]">
+                {/* --faint at 11px measured 3.9:1 — under the 4.5:1 floor. */}
+                <p className="mt-2 font-mono text-xs text-[var(--dim)]">
                   {a.source} ·{" "}
                   {new Date(a.publishedAt).toLocaleDateString("en-GB", {
                     day: "2-digit",

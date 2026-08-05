@@ -163,19 +163,62 @@ async function News({ ticker }: { ticker: string }) {
   }
 
   return (
-    <ul className="space-y-4">
-      {res.data.map((a) => (
-        <li key={a.id} className="border-t border-[var(--rule)] pt-4">
-          <a
-            href={a.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[0.95rem] leading-snug transition-colors hover:text-[var(--gold)]"
-          >
-            {a.headline}
-          </a>
-          <SentimentTag headline={a.headline} />
-          <p className="mt-1.5 font-mono text-[11px] text-[var(--faint)]">
+    // Spacing alone could not carry the separation here. A wrapped headline
+    // sets its own lines 26px apart, and the gap between articles was 28px —
+    // 1.08x, which the eye cannot read as a boundary, so eight articles merged
+    // into one block. The separator is what distinguishes them; the space
+    // around it is what keeps it from feeling like a table.
+    <ul className="space-y-5">
+      {res.data.map((a, i) => (
+        <li key={a.id}>
+          {/* Inset by 40px on both sides, deliberately NOT full-bleed. A rule
+              spanning the panel already means "section divider" in this layout
+              — Key statistics above uses exactly that — so an item separator
+              has to be a visibly different mark rather than the same one at a
+              different frequency. The inset is what distinguishes them.
+
+              Measured against the panel, not the headline column. It reads as
+              the same mark as the separators between alert rows — which do run
+              the full content width — pulled in at both ends, so the two are
+              recognisably one family rather than two unrelated rules. Tying it
+              to the 58ch measure instead made it a third, shorter thing.
+
+              No max-width: a block element already fills its parent, so the
+              margins alone set the length and it insets identically at every
+              width. Never before the first article — a rule under the heading
+              would read as the heading's own underline. */}
+          {i > 0 && (
+            <div
+              aria-hidden
+              className="mx-10 mb-5 border-t border-[var(--rule-strong)]"
+            />
+          )}
+          {/* Measure cap. The panel is 992px wide, which ran long headlines to
+              ~127 characters a line — well past the 45–75 that stays readable.
+              It sits on a wrapper rather than the anchor so the sentiment tag
+              still flows inline after the last word.
+              58 and not 75: `ch` is the width of "0", which in Geist is
+              narrower than the average lowercase letter, so the unit
+              undercounts real characters by about a third. 58ch measures ~75
+              actual characters — the ceiling, not the number in the class. */}
+          <div className="max-w-[58ch]">
+            <a
+              href={a.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              // Was 0.95rem/leading-snug: under the 1rem body floor and tighter
+              // than default, when light-on-dark wants the opposite — a little
+              // more leading, not less.
+              className="text-base leading-relaxed transition-colors hover:text-[var(--gold)]"
+            >
+              {a.headline}
+            </a>
+            <SentimentTag headline={a.headline} />
+          </div>
+          {/* --faint at 11px measured 3.9:1 against the ground: the smallest
+              text on the page at the lowest contrast, and under the 4.5:1 floor
+              for anything this size. --dim clears it. */}
+          <p className="mt-2 font-mono text-xs text-[var(--dim)]">
             {a.source} · {new Date(a.publishedAt).toLocaleDateString("en-GB")}
           </p>
         </li>
