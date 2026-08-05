@@ -17,6 +17,13 @@
    colourblind readers need.
    ========================================================================= */
 :root {
+  /* Tells the browser which palette to paint the parts of a native control we
+     cannot reach: the <select> dropdown popup, autofill, spinners, scrollbars,
+     the focus ring. Without it those render from the LIGHT system palette no
+     matter what background the CSS puts on the closed control — so a dark form
+     opened a white menu. Not decoration; it is the only lever CSS has here. */
+  color-scheme: dark;
+
   /* Ground and ink */
   --ground: #08090b;
   --raised: #101216;
@@ -24,6 +31,14 @@
   /* 6.4:1 on --ground — secondary text never drops below the 4.5:1 floor */
   --dim: #9a9ca1;
   --faint: #6b6e74;
+
+  /* The edge of an interactive control, distinct from --rule-strong.
+     A form field's border is often the ONLY thing marking where the control
+     is, which puts it under the 3:1 non-text contrast requirement rather than
+     the decorative-rule budget. --rule-strong measured 1.69:1 against the
+     ground: correct for a divider, far too quiet for a boundary. 3.24:1 here
+     against the ground and 3.05:1 against --raised, so it holds on both. */
+  --field-border: #5c626b;
 
   /* Brand. Metallic, not neon. */
   --gold: #d9a441;
@@ -58,11 +73,17 @@
    pair manages. Gold darkens too; #d9a441 on near-white is unreadable.
    --------------------------------------------------------------------------- */
 :root[data-theme="light"] {
+  /* Flips native control internals back with the rest of the palette. */
+  color-scheme: light;
+
   --ground: #fbfbfa;
   --raised: #f3f3f0;
   --fg: #17181a;
   --dim: #5c5f66;
   --faint: #83868c;
+
+  /* 3.27:1 on the light ground, 3.05:1 on --raised. Same reasoning as dark. */
+  --field-border: #8c8c84;
 
   --gold: #96690f;
   --gold-dim: #b8933f;

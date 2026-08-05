@@ -1,5 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Nav } from "@/components/nav";
+import { Footer } from "@/components/ui/footer";
+import { RevealOnScroll } from "@/components/ui/reveal-on-scroll";
 
 /**
  * Shared frame for /login and /signup so the two cannot drift apart.
@@ -20,8 +23,20 @@ export function AuthShell({
   footer: ReactNode;
 }) {
   return (
-    <main className="flex min-h-screen flex-col justify-center px-6 py-16">
+    <>
+      {/* Revealed on scroll rather than fixed in place: the form is the task,
+          and a bar offering four ways to leave sits badly above the moment we
+          are asking someone to stay. It comes down as soon as the page moves,
+          and on focus for anyone arriving by keyboard. */}
+      <RevealOnScroll>
+        <Nav />
+      </RevealOnScroll>
+
+      <main className="flex min-h-screen flex-col justify-center px-6 py-16">
       <div className="mx-auto w-full max-w-[24rem]">
+        {/* Kept even though the nav carries the wordmark too. The nav is hidden
+            on arrival, so without this the page has no route home at all until
+            you scroll. */}
         <Link
           href="/"
           className="font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase transition-colors hover:text-[var(--gold)]"
@@ -42,7 +57,9 @@ export function AuthShell({
           {footer}
         </p>
       </div>
-    </main>
+      </main>
+      <Footer />
+    </>
   );
 }
 
@@ -61,7 +78,9 @@ export function Notice({
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={`mb-6 border-l-2 bg-[var(--raised)] px-3 py-2.5 text-sm leading-relaxed text-[var(--fg)] ${
+      // 1px rather than 2px: the thick coloured left bar is the category's
+      // stock alert costume, and the copy already carries the meaning.
+      className={`mb-6 border-l bg-[var(--raised)] px-3 py-2.5 text-sm leading-relaxed text-[var(--fg)] ${
         tone === "error" ? "border-[var(--down)]" : "border-[var(--gold)]"
       }`}
     >
