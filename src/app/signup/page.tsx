@@ -8,6 +8,8 @@ import { AuthShell } from "@/components/auth/auth-shell";
 export const metadata: Metadata = {
   title: "Create account — Financial Watchlist",
   alternates: { canonical: "/signup" },
+  // Same reasoning as /login: a form, not an answer. `follow` preserved.
+  robots: { index: false, follow: true },
 };
 
 export default async function SignUpPage({
