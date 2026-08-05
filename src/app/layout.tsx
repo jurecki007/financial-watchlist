@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
+import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +17,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Every page sets its own relative `alternates.canonical`; this is what makes
+  // those resolve to absolute production URLs. Without it Next.js emits nothing
+  // absolute and canonical tags cannot be expressed at all.
+  //
+  // Note this is NOT given an `alternates.canonical` of its own: metadata is
+  // inherited, so a canonical here would make every page in the tree claim to be
+  // the homepage.
+  metadataBase: SITE_URL,
   title: "Financial Watchlist",
   description:
     "Track companies, watch prices and charts, read the news that moves them.",
