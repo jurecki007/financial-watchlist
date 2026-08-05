@@ -49,10 +49,16 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         aria-describedby={hint ? `${name}-hint` : undefined}
-        className="h-11 w-full border border-[var(--rule-strong)] bg-[var(--raised)] px-3 text-[0.95rem] text-[var(--fg)] transition-colors placeholder:text-[var(--faint)] hover:border-[var(--faint)] focus:border-[var(--gold)] focus:outline-none"
+        // --field-border, not --rule-strong: the border is the only thing
+        // marking where this control is, which puts it under the 3:1 non-text
+        // requirement. --rule-strong measured 1.69:1 against the ground.
+        // The placeholder moves off --faint for the same reason the hint does.
+        className="h-11 w-full border border-[var(--field-border)] bg-[var(--raised)] px-3 text-[0.95rem] text-[var(--fg)] transition-colors placeholder:text-[var(--dim)] hover:border-[var(--dim)] focus:border-[var(--gold)] focus:outline-none"
       />
       {hint && (
-        <span id={`${name}-hint`} className="mt-2 block text-xs text-[var(--faint)]">
+        // Was --faint at 12px: 3.9:1 dark, 3.5:1 light — under the 4.5:1 floor
+        // on the one line that explains what the field will accept.
+        <span id={`${name}-hint`} className="mt-2 block text-xs text-[var(--dim)]">
           {hint}
         </span>
       )}
@@ -113,7 +119,10 @@ export function AuthForm({
         {state?.error && (
           <p
             role="alert"
-            className="border-l-2 border-[var(--down)] bg-[var(--raised)] px-3 py-2.5 text-sm leading-relaxed text-[var(--fg)]"
+            // 1px, not 2px. A thick coloured left border is the category's
+            // default alert costume; the copy and role="alert" carry the
+            // meaning, and red here is already borrowed from price direction.
+            className="border-l border-[var(--down)] bg-[var(--raised)] px-3 py-2.5 text-sm leading-relaxed text-[var(--fg)]"
           >
             {state.error}
           </p>
@@ -127,7 +136,9 @@ export function AuthForm({
 
       <div className="my-7 flex items-center gap-4">
         <span className="h-px flex-1 bg-[var(--rule)]" />
-        <span className="font-mono text-xs tracking-wider text-[var(--faint)]">
+        {/* 3.9:1 dark and 3.52:1 light on --faint — under the floor, on a word
+            that tells you the two paths are alternatives rather than steps. */}
+        <span className="font-mono text-xs tracking-wider text-[var(--dim)]">
           OR
         </span>
         <span className="h-px flex-1 bg-[var(--rule)]" />
@@ -137,7 +148,7 @@ export function AuthForm({
         <input type="hidden" name="next" value={next} />
         <button
           type="submit"
-          className="flex h-11 w-full items-center justify-center gap-3 border border-[var(--rule-strong)] text-sm text-[var(--fg)] transition-colors hover:border-[var(--faint)] hover:bg-[var(--raised)]"
+          className="flex h-11 w-full items-center justify-center gap-3 border border-[var(--field-border)] text-sm text-[var(--fg)] transition-colors hover:border-[var(--dim)] hover:bg-[var(--raised)]"
         >
           <svg aria-hidden viewBox="0 0 24 24" className="size-[18px]">
             <path
