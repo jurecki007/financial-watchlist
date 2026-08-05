@@ -56,10 +56,18 @@ describe("landingPageGraph", () => {
     assert.ok(!JSON.stringify(graph).includes("SearchAction"));
   });
 
-  test("asserts no identity beyond the GitHub account the footer links", () => {
+  // The rule is not "no name" — it is that the graph never claims more than the
+  // site's own pages do. /about/author publishes the name and links the GitHub
+  // account, so the graph may state both and nothing further.
+  test("asserts no identity beyond what /about/author publishes", () => {
     const person = byType("Person")!;
-    assert.equal(person.name, "jurecki007");
+    assert.equal(person.name, "Maciej Sacewicz");
     assert.deepEqual(person.sameAs, ["https://github.com/jurecki007"]);
+    assert.match(String(person.url), /\/about\/author$/);
+    // No contact details, employer or location in the graph: the page carries
+    // an email for a human to use, not a field for a scraper to harvest.
+    const keys = Object.keys(person).sort();
+    assert.deepEqual(keys, ["@id", "@type", "name", "sameAs", "url"]);
   });
 
   test("inLanguage matches the lang attribute the layout renders", () => {
