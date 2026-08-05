@@ -33,8 +33,21 @@ Do not substitute libraries in this list without asking first — the stack itse
 8. **A provider failure must never break a page.** The market-data layer returns a discriminated result (`{ ok: true, data }` / `{ ok: false, reason }`) instead of throwing. `reason` is one of:
    - `rate_limited` — 429 or credit exhaustion. Copy: "We're fetching data faster than our market feed allows. Prices will refresh in a moment."
    - `unavailable` — 5xx, timeout, network failure. Copy: "Our market data provider isn't responding right now." + retry.
-   - `not_entitled` — 403 / paywalled endpoint. Copy: "This data isn't included on the demo's free data plan."
+   - `not_entitled` — **403 only** / paywalled endpoint. Copy: "This data isn't included on the demo's free data plan."
+   - `misconfigured` — 401, or the API key is absent from the environment. Copy: "This deployment is missing its market-data credentials, so prices and charts can't load."
    - `not_found` — unknown ticker. Copy: "We couldn't find a listing for that symbol."
+
+   **401 and 403 must never be collapsed.** They were once, and the result was a
+   deployment with no `TWELVE_DATA_API_KEY` telling every visitor the chart sat
+   behind a paid plan — a configuration fault presented as a product decision,
+   which is the most expensive kind of wrong for a demo whose job is to be
+   believed. 403 is the plan's limit and nobody can fix it; 401 is ours and
+   someone can. Providers that answer with an error code inside a 200 body
+   (Twelve Data does) get the same split applied to the body code.
+
+   Missing keys are caught **before** the request goes out (`missingKey()` in
+   `lib/market-data/http.ts`), so an unset variable costs no round-trip and puts
+   its own name in the server log. The variable name never reaches the browser.
 
    Rules that follow from this:
    - **Serve stale before erroring.** If `quote_cache` / `news_cache` holds an expired row and the refetch fails, render the stale value with a visible "as of {time}" badge. A slightly old price beats an error card.

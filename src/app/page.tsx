@@ -17,6 +17,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HeroChart } from "@/components/hero-chart";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import fixture from "@/lib/fixtures/xau-daily.json";
 import { landingPageGraph, serialiseJsonLd } from "@/lib/structured-data";
 
@@ -67,21 +68,30 @@ export default function Home() {
         <div className="hero-fade pointer-events-none absolute inset-x-0 bottom-0 z-10 h-44" />
 
         <div className="relative z-20 flex min-h-[92vh] flex-col px-6 py-8 sm:px-10">
-          <div className="flex items-baseline gap-3 font-mono text-xs">
-            <span className="tracking-[0.18em] text-[var(--dim)] uppercase">
-              XAU/USD
-            </span>
-            <span className="tabular-nums text-[var(--fg)]">
-              {last.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </span>
-            {/* Direction carries a shape and a sign, so it survives colour
-                being stripped out entirely. */}
-            <span
-              className={`tabular-nums ${up ? "text-[var(--up)]" : "text-[var(--down)]"}`}
-            >
-              {up ? "▲" : "▼"} {up ? "+" : ""}
-              {delta.toFixed(2)}%
-            </span>
+          {/* The landing page carries no nav, so the theme control has no
+              existing home to sit in. It goes here rather than in the footer:
+              the decision to switch is made on sight of the dark hero, and a
+              control answering that is no use a full scroll below it.
+              `items-center` on the row, not `items-baseline` — the icon aligns
+              to the line box, while the numerals keep their shared baseline. */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-baseline gap-3 font-mono text-xs">
+              <span className="tracking-[0.18em] text-[var(--dim)] uppercase">
+                XAU/USD
+              </span>
+              <span className="tabular-nums text-[var(--fg)]">
+                {last.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </span>
+              {/* Direction carries a shape and a sign, so it survives colour
+                  being stripped out entirely. */}
+              <span
+                className={`tabular-nums ${up ? "text-[var(--up)]" : "text-[var(--down)]"}`}
+              >
+                {up ? "▲" : "▼"} {up ? "+" : ""}
+                {delta.toFixed(2)}%
+              </span>
+            </div>
+            <ThemeToggle />
           </div>
 
           <div className="my-auto max-w-[34rem] py-16">

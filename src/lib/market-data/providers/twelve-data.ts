@@ -1,4 +1,4 @@
-import { getJson, twelveDataError } from "../http.ts";
+import { getJson, missingKey, twelveDataError } from "../http.ts";
 import {
   fail,
   ok,
@@ -73,6 +73,9 @@ export async function getQuotes(
   const symbols = [...new Set(tickers.map(normalizeTicker))].filter(Boolean);
   if (symbols.length === 0) return ok({});
 
+  const absent = missingKey("TWELVE_DATA_API_KEY", key());
+  if (absent) return absent;
+
   const url = `${BASE}/quote?symbol=${encodeURIComponent(symbols.join(","))}&apikey=${key()}`;
   const res = await getJson<Record<string, RawQuote> | RawQuote>(url, {
     label: "twelvedata/quote",
@@ -109,6 +112,9 @@ export async function getCandles(
   ticker: string,
   { days = 180 }: { days?: number } = {},
 ): Promise<Result<Candle[]>> {
+  const absent = missingKey("TWELVE_DATA_API_KEY", key());
+  if (absent) return absent;
+
   const url = `${BASE}/time_series?symbol=${encodeURIComponent(
     normalizeTicker(ticker),
   )}&interval=1day&outputsize=${days}&apikey=${key()}`;

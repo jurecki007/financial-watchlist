@@ -11,7 +11,7 @@
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { twelveDataError } from "../src/lib/market-data/http.ts";
+import { missingKey, twelveDataError } from "../src/lib/market-data/http.ts";
 import {
   fail,
   ok,
@@ -30,6 +30,21 @@ describe("Twelve Data in-body errors", () => {
 
   test("403 is not_entitled, not a generic failure", () => {
     assert.equal(twelveDataError({ status: "error", code: 403 }), "not_entitled");
+  });
+
+  // The distinction this pair protects is the one that actually misled a
+  // reader: with 401 folded into not_entitled, a deployment that had simply
+  // never been given TWELVE_DATA_API_KEY told every visitor the chart sat
+  // behind a paid plan. 401 is our configuration, 403 is the plan.
+  test("401 is misconfigured, not not_entitled", () => {
+    assert.equal(twelveDataError({ status: "error", code: 401 }), "misconfigured");
+  });
+
+  test("401 and 403 do not collapse to the same reason", () => {
+    assert.notEqual(
+      twelveDataError({ status: "error", code: 401 }),
+      twelveDataError({ status: "error", code: 403 }),
+    );
   });
 
   test("a 400 mentioning the symbol reads as not_found", () => {
@@ -55,12 +70,28 @@ describe("Twelve Data in-body errors", () => {
   });
 });
 
+describe("missing credentials", () => {
+  test("an absent key fails locally instead of calling the provider", () => {
+    const res = missingKey("TWELVE_DATA_API_KEY", "");
+    assert.equal(res?.reason, "misconfigured");
+  });
+
+  test("a present key does not short-circuit", () => {
+    assert.equal(missingKey("TWELVE_DATA_API_KEY", "abc123"), null);
+  });
+
+  test("the failure is not retryable — no env var changes on a retry", () => {
+    assert.equal(missingKey("FINNHUB_API_KEY", "")?.retryable, false);
+  });
+});
+
 describe("retryability", () => {
   // Retrying a 403 or a bad symbol spends budget that will never succeed.
   const cases: [FailureReason, boolean][] = [
     ["rate_limited", true],
     ["unavailable", true],
     ["not_entitled", false],
+    ["misconfigured", false],
     ["not_found", false],
   ];
   for (const [reason, retryable] of cases) {
@@ -70,18 +101,41 @@ describe("retryability", () => {
   }
 });
 
+/**
+ * Hand-listed, but the list cannot silently fall behind the union: the
+ * `satisfies` clause rejects a name that is not a reason, and the `Missing`
+ * check below rejects a reason that is not in the list. Adding a member to
+ * FailureReason and forgetting it here is a type error, not a passing suite.
+ *
+ * Verified by deleting "misconfigured" from this array and confirming
+ * `tsc --noEmit` fails on _NO_REASON_UNCOVERED.
+ */
+const ALL_REASONS = [
+  "rate_limited",
+  "unavailable",
+  "not_entitled",
+  "misconfigured",
+  "not_found",
+] as const satisfies readonly FailureReason[];
+
+type Missing = Exclude<FailureReason, (typeof ALL_REASONS)[number]>;
+const _NO_REASON_UNCOVERED: Missing extends never ? true : never = true;
+
 describe("user-facing copy", () => {
   test("every failure reason has copy, so none can reach a user unmapped", () => {
-    for (const reason of [
-      "rate_limited",
-      "unavailable",
-      "not_entitled",
-      "not_found",
-    ] as FailureReason[]) {
+    void _NO_REASON_UNCOVERED;
+    for (const reason of ALL_REASONS) {
       const copy = FAILURE_COPY[reason];
       assert.ok(copy?.title && copy?.body, `${reason} has no copy`);
       // Vendor names must not leak into anything a user reads.
       assert.doesNotMatch(copy.body, /twelve ?data|finnhub|supabase/i);
+    }
+  });
+
+  // The environment variable names belong in the server log, not in a page.
+  test("no failure copy names an environment variable", () => {
+    for (const reason of ALL_REASONS) {
+      assert.doesNotMatch(FAILURE_COPY[reason].body, /API_KEY|SECRET|_URL/);
     }
   });
 });
