@@ -104,6 +104,12 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Hero draw-in re-timed to 4.2s and driven by elapsed time, not frames — the old per-frame bar count ran the animation twice as fast on a 120Hz display as on a 60Hz one
 - [x] `misconfigured` split out of `not_entitled` (401 vs 403) — a deployment with no API key was telling visitors the data sat behind a paid plan; missing keys now fail before the request and name the variable in the server log
 - [x] Chart history — leading page raised 180 → 750 bars, and panning near the left edge pages in the next 750 through an auth-gated `/api/candles`. Immutable historical pages are cached in memory; end-of-history stops the requests and is stated in the readout
+- [x] Geist actually applied — `@theme` resolved `--font-sans` against `:root`, where the next/font variable was not defined, so every sans surface fell through to the system stack while Geist was downloaded and used for nothing
+- [x] `color-scheme` declared — native `<select>` popups, autofill and scrollbars were rendering from the light system palette on the dark theme
+- [x] `--field-border` token — a control's border is often the only thing marking where it is, which puts it under the 3:1 non-text floor; `--rule-strong` measured 1.69:1
+- [x] Alerts can be created from `/alerts` — the page whose subject is alerts was read-only and sent you elsewhere to make one. Form shared with the company page rather than copied
+- [x] `/about/project` and `/about/author` — stack, providers, failure taxonomy, data model and release process for a reader evaluating the work; two-tab section with a marker that travels
+- [x] Auth pages carry the nav and footer — nav revealed on scroll, and on focus so it is not a keyboard trap
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 

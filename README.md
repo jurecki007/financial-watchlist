@@ -438,6 +438,41 @@ construction time, so each one observes `data-theme` and re-applies its colours
 on change. Without that a theme switch left dark grid lines and dark axis text
 sitting on the light page — the canvas does not inherit CSS.
 
+## About pages
+
+[`/about/project`](src/app/about/project/page.tsx) and
+[`/about/author`](src/app/about/author/page.tsx) are the recruiter-facing surface: the
+stack, both providers and their limits, the failure taxonomy, the data model and the
+release process. Public — an auth gate on the pages that explain the project would defeat
+the point of writing them.
+
+They sit behind **one** primary-nav entry with their own two-tab bar rather than two more
+top-level items. The primary nav already carries four destinations plus a wordmark, theme
+toggle, account mark and sign-out, and already drops Roadmap below `sm` to fit.
+
+The tab marker is a single element that translates and scales between tabs, not one marker
+per tab. Two markers cross-fading says "this turned off, that turned on"; one that moves
+says the selection moved, which is what happened. It is transform-only, so no frame of the
+animation touches layout, and `prefers-reduced-motion` gets the same destination with no
+travel.
+
+**The tab bar is a client component on purpose.** An App Router layout does not re-render
+when navigating between the routes that share it, so reading the path from the
+`x-pathname` header — correct in the primary nav, which renders per page — froze it at
+whatever it was when the section mounted. Every hard load looked right and only clicking
+between tabs exposed it, which is why it is pinned by an e2e test that navigates by
+clicking rather than by `goto`.
+
+## Auth pages
+
+`/login` and `/signup` carry the nav and footer, but the nav starts translated out of view
+and comes down once the page scrolls: the form is the whole task, and a bar offering four
+ways to leave sits badly above the moment we are asking someone to stay.
+
+A translated element is still focusable, so `focus-within` brings the bar down on the first
+Tab rather than letting focus land off-screen. The wordmark stays inside the form as well,
+because with the nav hidden on arrival the page would otherwise have no route home at all.
+
 ## Responsive
 
 Verified at 375 / 768 / 1440 with Playwright, which sets a **real layout
