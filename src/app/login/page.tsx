@@ -10,6 +10,12 @@ import { AuthShell, Notice } from "@/components/auth/auth-shell";
 export const metadata: Metadata = {
   title: "Sign in — Financial Watchlist",
   alternates: { canonical: "/login" },
+  // A sign-in form is 29 words of interface with nothing to answer a search
+  // with. `follow` stays on so the crawl continues through to /roadmap and the
+  // landing page rather than dead-ending here — this is the page the auth gate
+  // redirects every protected route to, so it is the most-linked URL on the
+  // site and the worst one to make a trap.
+  robots: { index: false, follow: true },
 };
 
 const CALLBACK_ERRORS: Record<string, string> = {
