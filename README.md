@@ -31,7 +31,16 @@ git config core.hooksPath .githooks   # enable the pre-commit secret scan
 npm run dev
 ```
 
-Nothing reads the env vars yet, so the app builds and runs with `.env.local` empty.
+The app **builds** with `.env.local` empty, but it no longer **runs** meaningfully that
+way: `TWELVE_DATA_API_KEY` drives quotes and every chart, `FINNHUB_API_KEY` drives
+fundamentals and news. Without them each of those surfaces renders "Market data isn't
+configured" and the server log names the missing variable.
+
+The same applies to every deployment target. **A missing key in Vercel looks exactly like
+a working deploy** — auth, the watchlist and the landing page all function, because they
+touch no provider; only the data surfaces are blank. If charts and prices are empty in a
+deployed environment, check the project's environment variables before anything else, and
+check the runtime log for `[market-data] … is not set`.
 
 | Script | Does |
 |---|---|
@@ -356,6 +365,14 @@ separation than the dark pair achieves).
 The stored theme is applied by a blocking script in `<head>`, before first
 paint. Applying it in an effect would show one frame of the wrong theme on every
 load, and a white flash on a dark-led product is worse than having no toggle.
+
+The toggle lives in the nav on every signed-in route, and in the hero's top row
+on the landing page, which carries no nav. Both write `data-theme` on `<html>`,
+which is what makes that attribute the single signal a chart can watch: both
+`lightweight-charts` instances read their palette from CSS custom properties at
+construction time, so each one observes `data-theme` and re-applies its colours
+on change. Without that a theme switch left dark grid lines and dark axis text
+sitting on the light page — the canvas does not inherit CSS.
 
 ## Responsive
 

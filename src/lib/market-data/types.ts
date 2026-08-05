@@ -15,6 +15,17 @@ export type FailureReason =
   | "unavailable"
   /** 403 — the endpoint exists but the free plan does not include it. */
   | "not_entitled"
+  /**
+   * 401, or the key is absent from the environment entirely. Our fault, not
+   * the provider's and not the plan's.
+   *
+   * Split out from `not_entitled` because collapsing the two told a very
+   * specific lie: a deployment with no `TWELVE_DATA_API_KEY` renders "this
+   * data sits behind a paid plan", which reads as a deliberate limit of the
+   * demo rather than a missing environment variable. That is the worst
+   * possible failure mode for a portfolio piece — it looks like a decision.
+   */
+  | "misconfigured"
   /** The symbol does not exist. A user error, not a system one. */
   | "not_found";
 
@@ -43,8 +54,9 @@ export type Result<T> = Success<T> | Failure;
 export const fail = (reason: FailureReason): Failure => ({
   ok: false,
   reason,
-  // not_entitled will never succeed on this plan, and not_found will never
-  // succeed for this symbol. Retrying either is wasted budget.
+  // not_entitled will never succeed on this plan, not_found will never succeed
+  // for this symbol, and misconfigured cannot succeed until someone changes an
+  // environment variable. Retrying any of the three is wasted budget.
   retryable: reason === "rate_limited" || reason === "unavailable",
 });
 
@@ -71,6 +83,13 @@ export const FAILURE_COPY: Record<FailureReason, { title: string; body: string }
   not_entitled: {
     title: "Not included in this demo",
     body: "This data sits behind a paid plan and isn't part of the demo.",
+  },
+  // Names our fault as ours. It deliberately does not name the variable: the
+  // fix belongs to whoever deploys this, and the browser is not where that
+  // conversation happens. The server log carries the variable name.
+  misconfigured: {
+    title: "Market data isn't configured",
+    body: "This deployment is missing its market-data credentials, so prices and charts can't load.",
   },
   not_found: {
     title: "Symbol not found",

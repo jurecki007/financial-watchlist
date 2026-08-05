@@ -92,13 +92,17 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 ### Phase 6 — Polish Pass
 - [x] Responsive check (mobile/tablet/desktop) — automated, 7 tests
 - [x] Skeleton loaders on all async data (dashboard cards, price, stats, news)
-- [x] Fault-injection pass — `not_entitled` and `not_found` forced live with real invalid credentials; `rate_limited` and `unavailable` covered by unit tests rather than by burning the daily budget
+- [x] Fault-injection pass — `not_entitled` and `not_found` forced live with real invalid credentials; `rate_limited` and `unavailable` covered by unit tests rather than by burning the daily budget. *Note: the "invalid credentials" half of this now classifies as `misconfigured`, not `not_entitled` — see the 401/403 split below. The pass tested the path; it could not tell the two causes apart, which is why the defect survived it.*
 - [x] README with architecture + decisions
 - [x] Canonical URLs + `metadataBase` — previews canonicalise to production, `?next=` variants collapse to one URL
 - [x] `robots.txt` + `sitemap.xml` — all crawlers allowed including AI; sitemap lists only the two indexable URLs
 - [x] `noindex` on `/login` and `/signup` — thin auth pages; `follow` kept so the crawl passes through
 - [x] Structured data — `WebSite` + `Person` JSON-LD, server-rendered; 7 tests, escape validated by breaking it
 - [x] HSTS with `includeSubDomains` + `preload` — set in `next.config.ts`; preload still needs submitting at hstspreload.org
+- [x] Theme toggle on the landing page — the one route with no nav, so the control had no home; sits in the hero's top row opposite the instrument label
+- [x] Charts follow the theme — both `lightweight-charts` instances observe `data-theme` and re-apply their palette, since a canvas inherits no CSS. Previously a switch left dark grid lines on the light page
+- [x] Hero draw-in re-timed to 4.2s and driven by elapsed time, not frames — the old per-frame bar count ran the animation twice as fast on a 120Hz display as on a 60Hz one
+- [x] `misconfigured` split out of `not_entitled` (401 vs 403) — a deployment with no API key was telling visitors the data sat behind a paid plan; missing keys now fail before the request and name the variable in the server log
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 

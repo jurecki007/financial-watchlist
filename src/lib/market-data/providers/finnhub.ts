@@ -1,4 +1,4 @@
-import { getJson } from "../http.ts";
+import { getJson, missingKey } from "../http.ts";
 import {
   fail,
   ok,
@@ -30,6 +30,9 @@ type RawMetric = {
 export async function getFundamentals(
   ticker: string,
 ): Promise<Result<Fundamentals>> {
+  const absent = missingKey("FINNHUB_API_KEY", key());
+  if (absent) return absent;
+
   const symbol = normalizeTicker(ticker);
   const url = `${BASE}/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all&token=${key()}`;
 
@@ -69,6 +72,9 @@ export async function getNews(
   ticker: string,
   { days = 14, limit = 8 }: { days?: number; limit?: number } = {},
 ): Promise<Result<Article[]>> {
+  const absent = missingKey("FINNHUB_API_KEY", key());
+  if (absent) return absent;
+
   const symbol = normalizeTicker(ticker);
   const to = new Date();
   const from = new Date(to.getTime() - days * 86_400_000);

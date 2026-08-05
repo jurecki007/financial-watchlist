@@ -33,42 +33,82 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
           await import("lightweight-charts");
         if (disposed || !container.current) return;
 
-        const css = getComputedStyle(document.documentElement);
-        const t = (n: string, f: string) => css.getPropertyValue(n).trim() || f;
-        const up = t("--up", "#2dd4bf");
-        const down = t("--down", "#f87171");
+        // Read fresh each time. The nav on this page carries the theme toggle,
+        // so the palette can change under a mounted chart; a snapshot taken at
+        // mount left dark grid lines and dark axis text on the light theme.
+        const readTokens = () => {
+          const css = getComputedStyle(document.documentElement);
+          const t = (n: string, f: string) =>
+            css.getPropertyValue(n).trim() || f;
+          return {
+            text: t("--faint", "#6b6e74"),
+            grid: t("--chart-grid", "rgba(255,255,255,0.04)"),
+            rule: t("--rule", "#23262b"),
+            ruleStrong: t("--rule-strong", "#333840"),
+            up: t("--up", "#2dd4bf"),
+            down: t("--down", "#f87171"),
+          };
+        };
+
+        const initial = readTokens();
 
         const chart = createChart(el, {
           layout: {
             background: { type: ColorType.Solid, color: "transparent" },
-            textColor: t("--faint", "#6b6e74"),
+            textColor: initial.text,
             attributionLogo: false,
           },
           width: el.clientWidth,
           height: el.clientHeight,
           grid: {
             vertLines: { visible: false },
-            horzLines: { color: t("--chart-grid", "rgba(255,255,255,0.04)") },
+            horzLines: { color: initial.grid },
           },
-          rightPriceScale: { borderColor: t("--rule", "#23262b") },
-          timeScale: { borderColor: t("--rule", "#23262b") },
+          rightPriceScale: { borderColor: initial.rule },
+          timeScale: { borderColor: initial.rule },
           crosshair: {
             mode: CrosshairMode.Magnet,
-            vertLine: { color: t("--faint", "#6b6e74"), width: 1, style: 3, labelBackgroundColor: t("--rule-strong", "#333840") },
-            horzLine: { color: t("--faint", "#6b6e74"), width: 1, style: 3, labelBackgroundColor: t("--rule-strong", "#333840") },
+            vertLine: { color: initial.text, width: 1, style: 3, labelBackgroundColor: initial.ruleStrong },
+            horzLine: { color: initial.text, width: 1, style: 3, labelBackgroundColor: initial.ruleStrong },
           },
         });
 
         const series = chart.addSeries(CandlestickSeries, {
-          upColor: up,
+          upColor: initial.up,
           downColor: "transparent",
-          wickUpColor: up,
-          wickDownColor: down,
-          borderUpColor: up,
-          borderDownColor: down,
+          wickUpColor: initial.up,
+          wickDownColor: initial.down,
+          borderUpColor: initial.up,
+          borderDownColor: initial.down,
         });
         series.setData(candles);
         chart.timeScale().fitContent();
+
+        const applyTheme = () => {
+          const t = readTokens();
+          chart.applyOptions({
+            layout: { textColor: t.text },
+            grid: { horzLines: { color: t.grid } },
+            rightPriceScale: { borderColor: t.rule },
+            timeScale: { borderColor: t.rule },
+            crosshair: {
+              vertLine: { color: t.text, labelBackgroundColor: t.ruleStrong },
+              horzLine: { color: t.text, labelBackgroundColor: t.ruleStrong },
+            },
+          });
+          series.applyOptions({
+            upColor: t.up,
+            wickUpColor: t.up,
+            borderUpColor: t.up,
+            wickDownColor: t.down,
+            borderDownColor: t.down,
+          });
+        };
+        const themeWatcher = new MutationObserver(applyTheme);
+        themeWatcher.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["data-theme"],
+        });
 
         // Readout of the hovered bar. Rendered in React beside the chart rather
         // than as a floating tooltip so it never covers the data it describes.
@@ -92,6 +132,7 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
 
         cleanup = () => {
           window.removeEventListener("resize", resize);
+          themeWatcher.disconnect();
           void onMove;
           chart.remove();
         };
