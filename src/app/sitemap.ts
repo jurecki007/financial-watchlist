@@ -27,6 +27,8 @@ import { SITE_URL } from "@/lib/site";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: new URL("/", SITE_URL).href },
+    { url: new URL("/about/project", SITE_URL).href },
+    { url: new URL("/about/author", SITE_URL).href },
     { url: new URL("/roadmap", SITE_URL).href },
   ];
 }

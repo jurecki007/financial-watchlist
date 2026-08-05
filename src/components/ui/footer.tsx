@@ -19,7 +19,19 @@ export function Footer() {
           Next.js and Supabase · quotes and charts from Twelve Data · news and
           fundamentals from Finnhub · charts by TradingView
         </p>
-        <nav aria-label="Footer" className="flex gap-6 text-xs">
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+          <Link
+            href="/about/project"
+            className="text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
+          >
+            The project
+          </Link>
+          <Link
+            href="/about/author"
+            className="text-[var(--dim)] transition-colors hover:text-[var(--gold)]"
+          >
+            The author
+          </Link>
           <Link
             href="/roadmap"
             className="text-[var(--dim)] transition-colors hover:text-[var(--gold)]"

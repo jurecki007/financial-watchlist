@@ -19,12 +19,15 @@ import { SITE_URL } from "./site.ts";
  *   2026-05-07. It buys nothing now.
  * - **No Organization.** There is no company here — this is one person's demo,
  *   and an Organization would assert a legal entity that does not exist.
- * - **No real name.** The site publishes none anywhere else, and the GitHub
- *   account the footer already links is the only identity it does assert.
- *   Structured data should not be the one place the project discloses more
- *   about its author than the page it describes.
+ * The "no real name" rule that used to live here has been retired rather than
+ * broken. It existed because structured data must never be the one place a
+ * project discloses more about its author than its own pages do — and at the
+ * time the site published no name anywhere. /about/author now does, by the
+ * author's decision, so the graph states what the page states. The principle
+ * held; the fact underneath it changed.
  */
 const GITHUB_PROFILE = "https://github.com/jurecki007";
+const AUTHOR_NAME = "Maciej Sacewicz";
 
 const AUTHOR_ID = new URL("/#author", SITE_URL).href;
 const WEBSITE_ID = new URL("/#website", SITE_URL).href;
@@ -48,9 +51,11 @@ export function landingPageGraph() {
       {
         "@type": "Person",
         "@id": AUTHOR_ID,
-        name: "jurecki007",
-        // sameAs, not url: this is the reference page that identifies the
-        // person, which is exactly what sameAs is for.
+        name: AUTHOR_NAME,
+        // The page that describes this person on this site. `url` is the
+        // canonical home for the entity; `sameAs` is for the same person
+        // elsewhere, which is what the GitHub profile is.
+        url: new URL("/about/author", SITE_URL).href,
         sameAs: [GITHUB_PROFILE],
       },
     ],

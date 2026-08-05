@@ -91,7 +91,20 @@ export default function Home() {
                 {delta.toFixed(2)}%
               </span>
             </div>
-            <ThemeToggle />
+            {/* The landing page renders no nav — the hero is full-bleed by
+                design — so without this the About pages were reachable from
+                every route except the one a first-time visitor actually
+                arrives on. For a demo whose audience is people evaluating the
+                work, that was the wrong page to omit. */}
+            <div className="flex items-center gap-5">
+              <Link
+                href="/about/project"
+                className="text-sm text-[var(--dim)] transition-colors hover:text-[var(--fg)]"
+              >
+                About
+              </Link>
+              <ThemeToggle />
+            </div>
           </div>
 
           <div className="my-auto max-w-[34rem] py-16">
@@ -153,7 +166,19 @@ export default function Home() {
           <p>
             Next.js, Supabase, Twelve Data and Finnhub, TradingView charts.
           </p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <Link
+              href="/about/project"
+              className="transition-colors hover:text-[var(--gold)]"
+            >
+              The project
+            </Link>
+            <Link
+              href="/about/author"
+              className="transition-colors hover:text-[var(--gold)]"
+            >
+              The author
+            </Link>
             <Link href="/roadmap" className="transition-colors hover:text-[var(--gold)]">
               Roadmap
             </Link>

@@ -25,16 +25,39 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
  * seeded, as this extends an established surface.
  */
 
-type NavLink = { href: string; label: string };
+type NavLink = {
+  href: string;
+  label: string;
+  /**
+   * Yields below `sm`. Only for destinations the footer also carries, so
+   * hiding one removes a shortcut rather than the only way there.
+   */
+  yieldsOnMobile?: boolean;
+};
 
+// About is one entry, not two. It opens onto its own two-tab bar — six items
+// here would have meant hiding half of them below `sm`, and the two pages are
+// a pair a reader moves between rather than two unrelated destinations.
+// Signed in, the three app destinations hold the bar at every width and the
+// two reference ones yield below `sm`. Adding About without this overflowed
+// /dashboard by 19px at 375px — four links plus a wordmark, theme toggle,
+// account mark and sign-out is simply more than the width holds.
 const SIGNED_IN: NavLink[] = [
   { href: "/dashboard", label: "Watchlist" },
   { href: "/news", label: "News" },
   { href: "/alerts", label: "Alerts" },
-  { href: "/roadmap", label: "Roadmap" },
+  { href: "/about", label: "About", yieldsOnMobile: true },
+  { href: "/roadmap", label: "Roadmap", yieldsOnMobile: true },
 ];
 
-const SIGNED_OUT: NavLink[] = [{ href: "/roadmap", label: "Roadmap" }];
+// Signed out it is the opposite: About is the point of the site rather than a
+// footnote, since someone arriving without an account is far more likely to be
+// evaluating the work than looking for a watchlist. The bar is short enough
+// here to keep it at every width.
+const SIGNED_OUT: NavLink[] = [
+  { href: "/about", label: "About" },
+  { href: "/roadmap", label: "Roadmap", yieldsOnMobile: true },
+];
 
 function NavItem({
   link,
@@ -109,10 +132,9 @@ export async function Nav() {
               key={l.href}
               link={l}
               current={isCurrent(l.href)}
-              // Roadmap is the least-used destination for a signed-in user and
-              // is also in the footer, so it yields space on small screens
-              // rather than pushing a hamburger over the other three.
-              className={l.href === "/roadmap" ? "hidden sm:inline-flex" : ""}
+              // Both reference destinations sit in the footer too, so yielding
+              // one on a narrow screen costs a shortcut rather than the route.
+              className={l.yieldsOnMobile ? "hidden sm:inline-flex" : ""}
             />
           ))}
         </div>
