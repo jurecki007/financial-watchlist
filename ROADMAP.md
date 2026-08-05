@@ -95,7 +95,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Fault-injection pass — `not_entitled` and `not_found` forced live with real invalid credentials; `rate_limited` and `unavailable` covered by unit tests rather than by burning the daily budget
 - [x] README with architecture + decisions
 - [x] Canonical URLs + `metadataBase` — previews canonicalise to production, `?next=` variants collapse to one URL
-- [ ] `robots.txt` + `sitemap.xml` — neither exists; both currently 404
+- [x] `robots.txt` + `sitemap.xml` — all crawlers allowed including AI; sitemap lists only the two indexable URLs
 - [ ] `noindex` on `/login` and `/signup` — thin auth pages, no search value
 - [ ] Structured data — `WebSite` + `Organization` JSON-LD, none on the site today
 

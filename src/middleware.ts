@@ -21,7 +21,14 @@ export const config = {
      * deliberately: the session still needs refreshing on public pages, or a
      * user's token expires while they read the landing page and they appear
      * signed out the moment they navigate.
+     *
+     * robots.txt and sitemap.xml are excluded because they are the two routes
+     * that never have a session to refresh. They are fetched by crawlers, which
+     * carry no cookies, so running the gate on them spends a Supabase getUser()
+     * round-trip per crawl to confirm what is already known: nobody is signed
+     * in. Excluding them is a cost decision, not a security one — neither is
+     * protected, and neither is reachable by isProtected().
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
