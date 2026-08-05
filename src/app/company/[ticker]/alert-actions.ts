@@ -50,7 +50,11 @@ export async function createAlert(
     return { error: "Couldn't save that alert. Try again." };
   }
 
+  // Both surfaces that can create an alert have to be refreshed, not just the
+  // one the request came from: /alerts now has its own form, and a company page
+  // left in the router cache would show a stale list on the next visit.
   revalidatePath(`/company/${ticker}`);
+  revalidatePath("/alerts");
   return { ok: true };
 }
 
@@ -64,4 +68,7 @@ export async function deleteAlert(formData: FormData): Promise<void> {
 
   const ticker = normalizeTicker(String(formData.get("ticker") ?? ""));
   if (ticker) revalidatePath(`/company/${ticker}`);
+  // Deleting from /alerts previously revalidated only the company page, so the
+  // row stayed on screen until a hard reload.
+  revalidatePath("/alerts");
 }

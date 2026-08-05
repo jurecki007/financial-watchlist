@@ -5,6 +5,7 @@ import { Nav } from "@/components/nav";
 import { Footer } from "@/components/ui/footer";
 import { Container } from "@/components/ui/shell";
 import { EmptyState } from "@/components/ui/states";
+import { AlertForm } from "@/components/alerts/alert-form";
 
 export const metadata = { title: "Alerts — Financial Watchlist" };
 
@@ -18,12 +19,17 @@ type Row = {
 };
 
 /**
- * Every alert in one place.
+ * Every alert in one place — and now the place to set one.
  *
- * Alerts are created on a company page, which is the right place to set one —
- * but it meant the only way to see what you had armed was to visit each
- * company in turn and remember. That is the Memory Bridge: state the user has
- * to reconstruct by navigating.
+ * This page used to be read-only: it listed alerts and told you to go to a
+ * company page to make one. That is a dead end on the screen whose entire
+ * subject is alerts. Someone arriving here wants to arm a price, and sending
+ * them to the watchlist to pick a company to then find the form is three
+ * navigations to reach a control that fits above the list.
+ *
+ * The company page keeps its own form. Neither is a copy — both render
+ * components/alerts/alert-form, which differs only in whether the ticker is
+ * already known.
  *
  * Waiting and sent are separated rather than sorted together. They answer
  * different questions — "what am I still watching for" versus "what have I
@@ -60,10 +66,13 @@ function AlertRow({ row }: { row: Row }) {
         <form action={deleteAlert}>
           <input type="hidden" name="id" value={row.id} />
           <input type="hidden" name="ticker" value={row.ticker} />
+          {/* size-8 hit area at --dim: the previous 23x28 at --faint missed
+              both the 24px target minimum and the 4.5:1 contrast floor, on a
+              control that destroys data. */}
           <button
             type="submit"
             aria-label={`Delete the ${row.ticker} alert`}
-            className="px-2 py-1 text-sm text-[var(--faint)] transition-colors hover:text-[var(--down)]"
+            className="flex size-8 items-center justify-center text-sm text-[var(--dim)] transition-colors hover:text-[var(--down)]"
           >
             ×
           </button>
@@ -75,13 +84,26 @@ function AlertRow({ row }: { row: Row }) {
 
 export default async function AlertsPage() {
   const supabase = await createClient();
-  // No user_id filter — RLS scopes this to the signed-in user.
-  const { data } = await supabase
-    .from("price_alerts")
-    .select("id, ticker, condition, threshold, triggered_at, active")
-    .order("created_at", { ascending: false });
+  // No user_id filter on either query — RLS scopes both to the signed-in user.
+  const [{ data }, { data: watchlist }] = await Promise.all([
+    supabase
+      .from("price_alerts")
+      .select("id, ticker, condition, threshold, triggered_at, active")
+      .order("created_at", { ascending: false }),
+    // The form offers the watchlist rather than a free-text ticker box: an
+    // alert on a company you do not follow is a dead letter, and a typo'd
+    // symbol would validate fine here and then simply never fire.
+    supabase
+      .from("watchlist_items")
+      .select("ticker, company_name")
+      .order("ticker"),
+  ]);
 
   const rows = (data ?? []) as Row[];
+  const choices = (watchlist ?? []).map((w) => ({
+    ticker: w.ticker as string,
+    companyName: w.company_name as string | null,
+  }));
   const waiting = rows.filter((r) => !r.triggered_at);
   const sent = rows.filter((r) => r.triggered_at);
   // Section headings distinguish two groups. With only one group there is
@@ -103,18 +125,36 @@ export default async function AlertsPage() {
             </p>
           </header>
 
+          {/* The form leads. It is the action this page exists to enable, and
+              putting it under a list that can run to dozens of rows would bury
+              it below the fold on exactly the accounts that use alerts most. */}
+          {choices.length > 0 && (
+            <div className="mt-8 border-t border-[var(--rule)] pt-6">
+              <AlertForm tickers={choices} />
+            </div>
+          )}
+
           <div className="mt-9 space-y-12">
             {rows.length === 0 ? (
               <EmptyState
                 title="No alerts set"
-                body="Open a company and set a price. We'll email you when it crosses, whether or not you have this open."
+                // The copy has to match what is actually on screen. With a
+                // watchlist the form is right above this, so pointing at a
+                // company page would be describing a different product.
+                body={
+                  choices.length > 0
+                    ? "Pick a company above and set a price. We'll email you when it crosses, whether or not you have this open."
+                    : "Add a company to your watchlist first, then set a price here. We'll email you when it crosses."
+                }
                 action={
-                  <Link
-                    href="/dashboard"
-                    className="flex h-10 items-center bg-[var(--gold)] px-4 text-sm font-medium text-[var(--ground)] transition-opacity hover:opacity-90"
-                  >
-                    Go to watchlist
-                  </Link>
+                  choices.length === 0 ? (
+                    <Link
+                      href="/dashboard"
+                      className="flex h-11 items-center bg-[var(--gold)] px-5 text-sm font-medium text-[var(--ground)] transition-opacity hover:opacity-90"
+                    >
+                      Go to watchlist
+                    </Link>
+                  ) : undefined
                 }
               />
             ) : (
@@ -142,8 +182,8 @@ export default async function AlertsPage() {
                       </h2>
                     )}
                     <p className="mb-3 text-sm text-[var(--dim)]">
-                      An alert fires once. Set a new one from the company page
-                      to watch the same price again.
+                      An alert fires once. Set a new one above to watch the same
+                      price again.
                     </p>
                     <ul>
                       {sent.map((r) => (
