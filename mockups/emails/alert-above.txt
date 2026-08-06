@@ -1,0 +1,9 @@
+NVDA has risen above 250.00
+
+Last traded   ^ 263.87
+Your alert    above 250.00
+
+View NVDA: https://financial-demo.nyxiontech.com/company/NVDA
+
+This alert has now been used up and will not send again.
+Set a new one from the company page.
