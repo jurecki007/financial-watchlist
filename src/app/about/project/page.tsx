@@ -45,6 +45,83 @@ function P({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * One email, framed as it actually renders.
+ *
+ * An iframe rather than a screenshot: a PNG would be another artefact to keep
+ * in step with the templates, and the first time it fell behind, this page
+ * would be showing a reviewer an email the app no longer sends. The files under
+ * public/mockups/ are regenerated from the templates by `npm run mockups`, so
+ * the page can only ever show what is really sent.
+ *
+ * `sandbox=""` applies every restriction: no scripts, no navigation, no forms.
+ * The emails contain no script, and a preview whose call to action navigates
+ * the reviewer away is not a preview. `loading="lazy"` keeps four documents
+ * from being fetched by anyone who never scrolls this far.
+ */
+function EmailPreview({
+  title,
+  note,
+  src,
+  heightClass,
+  textSrc,
+}: {
+  title: string;
+  note: string;
+  src: string;
+  /**
+   * Fixed, and responsive, because the frame cannot measure its own contents:
+   * `sandbox=""` denies same-origin access, which is the point of it. Heights
+   * were measured from the real documents at 360 / 500 / 760px, where each
+   * email grows about 10% as it narrows and the text rewraps.
+   *
+   * Deliberately biased generous. Surplus height is invisible — the email's
+   * own background is the same `--ground` as the page behind it — whereas a
+   * few pixels short puts a scrollbar inside a preview.
+   */
+  heightClass: string;
+  /** The text/plain alternative, where the message has one. */
+  textSrc?: string;
+}) {
+  return (
+    <figure className="m-0">
+      <figcaption className="mb-2.5">
+        <span className="font-mono text-sm text-[var(--gold)]">{title}</span>
+        <span className="mt-1 block max-w-[60ch] text-sm leading-relaxed text-[var(--dim)]">
+          {note}
+        </span>
+      </figcaption>
+
+      <div className="border border-[var(--rule)]">
+        <iframe
+          src={src}
+          title={`${title}, as the email renders`}
+          loading="lazy"
+          sandbox=""
+          className={`block w-full bg-[var(--ground)] ${heightClass}`}
+        />
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-x-5 text-xs">
+        <a
+          href={src}
+          className="font-mono text-[var(--dim)] transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold)]"
+        >
+          open full size
+        </a>
+        {textSrc ? (
+          <a
+            href={textSrc}
+            className="font-mono text-[var(--dim)] transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--gold)]"
+          >
+            plain-text version
+          </a>
+        ) : null}
+      </div>
+    </figure>
+  );
+}
+
 function Row({
   name,
   role,
@@ -350,6 +427,58 @@ export default function ProjectPage() {
               an error. Reduced-motion gets the finished chart immediately, not a
               degraded one.
             </Decision>
+          </div>
+        </Section>
+
+        <Section title="Emails">
+          <div className="space-y-5">
+            <P>
+              Three messages leave the app: a price alert when a threshold is
+              crossed, and the signup and password-reset mails. Each one is
+              below, rendered from the same source that sends it &mdash; so this
+              page cannot drift from the inbox, and nothing has to be triggered
+              to be reviewed.
+            </P>
+            <P>
+              They are built to email&rsquo;s constraints rather than the
+              web&rsquo;s: tables for layout because Outlook renders with Word,
+              styles inlined because Gmail drops a stylesheet, and each button
+              doubled as VML so it survives both. Every alert also carries a
+              plain-text alternative.
+            </P>
+          </div>
+
+          {/* Generous gap between previews, not decoration: each frame's
+              caption sits above it and its two links below, so the space
+              between one email and the next has to beat the space inside a
+              group or the links read as belonging to the wrong email. */}
+          <div className="mt-7 space-y-14">
+            <EmailPreview
+              title="Price alert — crossed upward"
+              note="Teal, ▲, and the word “risen”: direction never rests on colour alone."
+              src="/mockups/emails/alert-above.html"
+              heightClass="h-[540px] lg:h-[490px]"
+              textSrc="/mockups/emails/alert-above.txt"
+            />
+            <EmailPreview
+              title="Price alert — crossed downward"
+              note="The same message inverted. Both are kept because neither is an example of the other."
+              src="/mockups/emails/alert-below.html"
+              heightClass="h-[540px] lg:h-[490px]"
+              textSrc="/mockups/emails/alert-below.txt"
+            />
+            <EmailPreview
+              title="Confirm your email"
+              note="Sent on signup. The pasteable link is full-strength gold, not a dimmed variant — it is the path that has to work once a filter strips the button."
+              src="/mockups/emails/confirmation.html"
+              heightClass="h-[650px] lg:h-[565px]"
+            />
+            <EmailPreview
+              title="Reset your password"
+              note="Says plainly that nothing has changed yet, because the most common reader of a reset mail did not ask for one."
+              src="/mockups/emails/recovery.html"
+              heightClass="h-[650px] lg:h-[565px]"
+            />
           </div>
         </Section>
 

@@ -693,12 +693,34 @@ upper-casing does not disarm markup. Verified by rendering `<B>PWN</B>`,
 
 ### Seeing them without sending them
 
-`npm run mockups` renders all four into [`mockups/emails/`](mockups/emails/) —
-both alert directions, both auth templates, plus the alert's `text/plain`
-alternative. They are generated from the real sources on every run, never
-hand-maintained, because a mockup that has quietly stopped matching the email
-is worse than no mockup: it is the artefact people trust when deciding whether
-the real thing looks right.
+`npm run mockups` renders all four into
+[`public/mockups/emails/`](public/mockups/emails/) — both alert directions, both
+auth templates, plus the alert's `text/plain` alternative. They are generated
+from the real sources on every run, never hand-maintained, because a mockup that
+has quietly stopped matching the email is worse than no mockup: it is the
+artefact people trust when deciding whether the real thing looks right.
+
+**`/about/project` frames all four**, so a reviewer sees every message without
+one being sent. They sit under `public/` for that reason — Next serves it
+verbatim, and a server component reading a path outside `public/` would depend
+on output file tracing having noticed it, which is a build that works locally
+and 404s in production.
+
+Two consequences worth knowing:
+
+- The iframes carry `sandbox=""` and fixed, responsive heights. The sandbox
+  denies same-origin access, so the frame cannot measure its own contents;
+  heights were measured from the real documents at 360/500/760px and biased
+  generous, since surplus height is invisible against the shared `--ground` but
+  a few pixels short puts a scrollbar inside a preview.
+- `X-Frame-Options` is narrowed from `DENY` to `SAMEORIGIN` **for `/mockups/`
+  only**, alongside `frame-ancestors 'self'`. The blanket `DENY` blocked the
+  frames silently — they rendered blank, and only loading the page in a browser
+  revealed it. Every other route, the whole app included, keeps `DENY`: the
+  reason it exists is that framing an authenticated watchlist is a clickjacking
+  target, and none of that applies to static documents with no session, forms or
+  state. They are also `Disallow`ed in `robots.txt`, since titles like "Confirm
+  your email" would otherwise compete with real routes in a result list.
 
 A browser is not an email client, though. The mockups settle copy, hierarchy
 and contrast; they cannot tell you how Word treats the VML button or what Gmail

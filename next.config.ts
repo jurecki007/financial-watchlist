@@ -53,7 +53,29 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // The rendered emails under /mockups/ are framed by /about/project so a
+      // reviewer can see every message without one being sent. The blanket
+      // DENY above stopped that — the frames were silently blank, and only
+      // loading the page in a browser showed it.
+      //
+      // Narrowed to SAMEORIGIN for these paths only, and only these: the
+      // reason DENY exists is that framing an authenticated watchlist is a
+      // clickjacking target, and none of that applies to four static
+      // documents with no session, no forms and no state. Every other route,
+      // including the whole app, keeps DENY.
+      //
+      // frame-ancestors is the modern control and XFO the legacy one; both are
+      // set so the pair cannot disagree in a browser that honours only one.
+      {
+        source: "/mockups/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+        ],
+      },
+    ];
   },
 };
 

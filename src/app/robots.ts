@@ -20,6 +20,12 @@ import { SITE_URL } from "@/lib/site";
  *            crawl.
  *   /auth/ — the OAuth callback. It exists to exchange a one-time code, and a
  *            crawler hitting it can only ever produce an error.
+ *   /mockups/ — the rendered emails framed on /about/project. They are real
+ *            documents rather than pages: no canonical, no nav, and titles like
+ *            "Confirm your email" that would compete with the app's own routes
+ *            in a result list. Disallow is the only lever here, because the
+ *            files are byte-faithful copies of what gets sent and adding a
+ *            noindex meta to them would make them stop being that.
  *
  * The auth-gated app routes (/dashboard, /news, /alerts, /company/*) are left
  * crawlable on purpose. They 307 to /login, which carries its own noindex, so
@@ -31,7 +37,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/auth/"],
+      disallow: ["/api/", "/auth/", "/mockups/"],
     },
     sitemap: new URL("/sitemap.xml", SITE_URL).href,
   };

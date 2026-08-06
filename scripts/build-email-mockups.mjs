@@ -17,7 +17,13 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const OUT = "mockups/emails";
+// public/, not a bare mockups/ at the root, for two reasons. Next serves
+// public/ verbatim, so /about/project can put each email in an iframe and show
+// a reviewer the real thing without sending one. And serving beats reading:
+// a server component doing readFileSync on a path outside public/ depends on
+// Next's output file tracing having noticed that path, which is a build that
+// works locally and 404s on Vercel.
+const OUT = "public/mockups/emails";
 const TEMPLATES = "supabase/templates";
 const ALERT_FN = "supabase/functions/check-price-alerts/index.ts";
 const APP_URL = "https://financial-demo.nyxiontech.com";
