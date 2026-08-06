@@ -14,30 +14,13 @@ export type AlertState = { error?: string; ok?: boolean } | undefined;
  */
 
 /**
- * Ask the evaluator to look at this ticker now.
+ * Ask the evaluator to look at this ticker now, so a threshold that is already
+ * met does not sit looking pending until the hourly sweep.
  *
- * Without it, an alert whose condition is already true sits looking pending
- * until the hourly sweep — "alert me when AAPL is above $1" reads as broken for
- * up to an hour, because nothing in the create path ever compared a price to a
- * threshold.
- *
- * Three properties matter more than speed here:
- *
- * - **It cannot fail the creation.** The alert is already committed. If the
- *   evaluator is down, rate-limited, or slow, the row still exists and the
- *   hourly sweep will catch it — so every failure path below is a log and a
- *   return, never a thrown error.
- * - **It is bounded.** A server action that awaits an upstream quote call with
- *   no timeout hands Twelve Data control of how long the user's form submit
- *   takes. Four seconds is longer than the call needs and shorter than a user
- *   will sit staring at a pending button.
- * - **It is scoped to one ticker**, so creating an alert costs a single quote
- *   credit rather than a sweep of every symbol anyone is watching.
- *
- * It is awaited rather than fired and forgotten because the `revalidatePath`
- * below has to run *after* the row may have been marked triggered — otherwise
- * the page re-renders from a snapshot taken before the send and shows the alert
- * as pending anyway, which is the bug this is meant to fix.
+ * Best-effort: the row is committed before this runs, every failure path logs
+ * and returns, and the timeout stops a slow provider holding the form submit
+ * open. Awaited rather than fired-and-forgotten so `revalidatePath` below sees
+ * the row after it may have been marked triggered.
  */
 async function checkNow(ticker: string): Promise<void> {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -112,9 +95,8 @@ export async function createAlert(
 
   await checkNow(ticker);
 
-  // Both surfaces that can create an alert have to be refreshed, not just the
-  // one the request came from: /alerts now has its own form, and a company page
-  // left in the router cache would show a stale list on the next visit.
+  // Both surfaces can create an alert, so both need refreshing — a page left in
+  // the router cache would show a stale list.
   revalidatePath(`/company/${ticker}`);
   revalidatePath("/alerts");
   return { ok: true };

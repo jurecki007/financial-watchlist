@@ -6,42 +6,19 @@ import { Container } from "@/components/ui/shell";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 /**
- * THESIS: instrument chrome, not a website header. It refuses the category
- * default — a floating rounded pill with a centred logo — because this app is
- * a tool people keep open, and a bar that draws attention to itself every time
- * they glance up is a tax.
- *
- * OWN-WORLD: hairline rule on the near-black ground, mono wordmark tracked
- * wide, gold reserved for the route you are on. Nothing raised, nothing
- * floating, no shadow.
- *
- * STORY: the visitor always knows where they are and can always reach the
- * other two places.
- *
- * FIRST VIEWPORT: wordmark left, links beside it, identity right, one hairline
- * beneath. 52px tall.
- *
- * FORM: fixed top bar, first on the ordered list; shaped directly rather than
- * seeded, as this extends an established surface.
+ * Instrument chrome rather than a website header: this is a tool people keep
+ * open, so the bar stays flat and quiet. Gold marks the current route.
  */
 
 type NavLink = {
   href: string;
   label: string;
-  /**
-   * Yields below `sm`. Only for destinations the footer also carries, so
-   * hiding one removes a shortcut rather than the only way there.
-   */
+  /** Yields below `sm`. Only for destinations the footer also carries. */
   yieldsOnMobile?: boolean;
 };
 
-// About is one entry, not two. It opens onto its own two-tab bar — six items
-// here would have meant hiding half of them below `sm`, and the two pages are
-// a pair a reader moves between rather than two unrelated destinations.
-// Signed in, the three app destinations hold the bar at every width and the
-// two reference ones yield below `sm`. Adding About without this overflowed
-// /dashboard by 19px at 375px — four links plus a wordmark, theme toggle,
-// account mark and sign-out is simply more than the width holds.
+// About is one entry, not two: it opens onto its own tab bar, and six items
+// here overflowed /dashboard by 19px at 375px.
 const SIGNED_IN: NavLink[] = [
   { href: "/dashboard", label: "Watchlist" },
   { href: "/news", label: "News" },
@@ -50,10 +27,8 @@ const SIGNED_IN: NavLink[] = [
   { href: "/roadmap", label: "Roadmap", yieldsOnMobile: true },
 ];
 
-// Signed out it is the opposite: About is the point of the site rather than a
-// footnote, since someone arriving without an account is far more likely to be
-// evaluating the work than looking for a watchlist. The bar is short enough
-// here to keep it at every width.
+// Signed out, About is the point rather than a footnote — and the bar is short
+// enough to keep it at every width.
 const SIGNED_OUT: NavLink[] = [
   { href: "/about", label: "About" },
   { href: "/roadmap", label: "Roadmap", yieldsOnMobile: true },

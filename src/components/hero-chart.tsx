@@ -7,32 +7,19 @@ type Bar = { time: string; open: number; high: number; low: number; close: numbe
 
 const BARS = fixture.bars as Bar[];
 
-/**
- * How long the hero takes to draw itself in.
- *
- * Long enough to be watched rather than merely noticed — the draw-in is this
- * page's loading state (CLAUDE.md, Loading Behaviour 7), so it should read as
- * the market printing, not as a transition that already finished. Short enough
- * that the CTA beneath it is never gated on the animation: the headline and
- * both buttons are server-rendered and clickable throughout.
- */
+/** The draw-in is this page's loading state, so it is watched, not just noticed. */
 const DRAW_MS = 4200;
 
 /**
  * Self-drawing XAU/USD candlestick hero.
  *
- * Data is a committed fixture, not a live call. The landing page is the
- * highest-traffic route and the least defensible place to spend an 800-call
- * daily budget — and it means the first thing anyone sees can never be an
- * error state, however the providers are behaving.
+ * A committed fixture rather than a live call: the landing page is the busiest
+ * route and the worst place to spend the daily budget, and this way the first
+ * thing anyone sees can never be an error state.
  *
- * The chart is decorative in the strict sense: `aria-hidden`, no pointer
- * events, no crosshair. The dataviz default is to ship a hover layer on any
- * plotted series, and the interactive charts on the company pages will have
- * one. Here the headline sits over the plot, so a crosshair would be a hit
- * target competing with reading, and a tooltip would obscure the copy it sits
- * behind. The prices carry no meaning the visitor must extract; they are
- * showing what the product does.
+ * Decorative in the strict sense — aria-hidden, no pointer events, no
+ * crosshair. The headline sits over the plot, so interactivity would compete
+ * with reading it.
  */
 export function HeroChart() {
   const container = useRef<HTMLDivElement>(null);
@@ -55,9 +42,8 @@ export function HeroChart() {
         );
         if (disposed || !container.current) return;
 
-        // Re-read on every call rather than closing over one snapshot: the
-        // toggle in the hero can flip the theme while this chart is mounted,
-        // and a cached palette would leave dark-theme candles on a light page.
+        // Re-read per call: the theme can flip while this is mounted, and a
+        // canvas inherits no CSS.
         const readTokens = () => {
           const css = getComputedStyle(document.documentElement);
           const token = (name: string, fallback: string) =>
@@ -84,13 +70,10 @@ export function HeroChart() {
             vertLines: { visible: false },
             horzLines: { color: initial.grid },
           },
-          // Axes off. This is an ambient demonstration, not an instrument —
-          // price and date labels invite reading precise values the visitor has
-          // no reason to want here, and they clutter the copy's ground.
+          // Axes off: ambient demonstration, not an instrument.
           rightPriceScale: { visible: false },
           leftPriceScale: { visible: false },
           timeScale: { visible: false, fixLeftEdge: true, fixRightEdge: true },
-          // Ambient, not a tool — see the note above.
           handleScroll: false,
           handleScale: false,
           crosshair: { mode: 2, vertLine: { visible: false }, horzLine: { visible: false } },
@@ -109,8 +92,7 @@ export function HeroChart() {
 
         chart.timeScale().fitContent();
 
-        // The head script and the toggle both write data-theme on <html>, so
-        // that attribute is the single signal for a palette change.
+        // data-theme on <html> is the single signal for a palette change.
         const applyTheme = () => {
           const t = readTokens();
           chart.applyOptions({
@@ -150,26 +132,19 @@ export function HeroChart() {
           series.setData(BARS);
           chart.timeScale().fitContent();
         } else {
-          // Draw the series in rather than fading it in. Feeding bars a frame
-          // at a time is the idiomatic way to animate lightweight-charts, which
-          // has no built-in entrance, and it reads as the market printing.
+          // Feeding bars a frame at a time is the idiomatic entrance for
+          // lightweight-charts, which has none built in.
           //
-          // Driven by elapsed time, not by a per-frame bar count. The previous
-          // "+3 bars per frame" tied the duration to the display: 160 bars ran
-          // ~0.9s on a 60Hz panel and ~0.45s on a 120Hz one, so the hero was
-          // twice as fast on exactly the hardware most likely to be reviewing
-          // it. Wall-clock time makes the pace a decision instead of a
-          // property of the monitor.
+          // Driven by elapsed time, not a per-frame bar count — the latter ties
+          // the duration to the refresh rate, running twice as fast at 120Hz.
           let start: number | null = null;
           const step = (now: number) => {
             if (disposed) return;
             start ??= now;
             const t = Math.min(1, (now - start) / DRAW_MS);
-            // Ease-out: the market arrives quickly, then settles. Linear read
-            // as a progress bar filling.
+            // Ease-out; linear reads as a progress bar filling.
             const eased = 1 - Math.pow(1 - t, 3);
-            // At least one bar on the first frame so the chart never flashes
-            // empty between mount and the first candle.
+            // At least one bar, so it never flashes empty on mount.
             const i = Math.max(1, Math.round(eased * BARS.length));
             series.setData(BARS.slice(0, i));
             chart.timeScale().fitContent();
@@ -185,8 +160,7 @@ export function HeroChart() {
           chart.remove();
         };
       } catch {
-        // The page must still read if the chart bundle fails. The hero degrades
-        // to its gradient ground and the copy is untouched.
+        // The hero degrades to its gradient ground; the copy is untouched.
         if (!disposed) setFailed(true);
       }
     })();

@@ -5,39 +5,21 @@ import type { Candle } from "@/lib/market-data";
 import { useToast } from "@/components/ui/toast";
 
 /**
- * The company chart — an instrument, not atmosphere.
+ * The company chart — an instrument, unlike the landing hero. It carries a
+ * crosshair and a readout because here the numbers are the point. Direction is
+ * filled (up) versus hollow (down) as well as coloured.
  *
- * Unlike the landing hero this ships the hover layer the dataviz default asks
- * for: crosshair plus a readout of the hovered bar. Here the numbers are the
- * point, someone came to read them, and nothing is overlaid on the plot to
- * compete for the pointer.
- *
- * Colour follows the same validated pair as everywhere else, and direction is
- * additionally carried by filled (up) versus hollow (down) bodies so it
- * survives colour being unavailable.
- *
- * History is paged in on scroll. The page arrives with PAGE_SIZE bars already
- * rendered; panning within PREFETCH_MARGIN bars of the left edge requests the
- * next page and prepends it. Previously the series simply ended, which reads as
- * a broken chart rather than as a boundary — there is no visual difference
- * between "no more data exists" and "we never asked".
+ * History pages in on scroll: panning within PREFETCH_MARGIN bars of the left
+ * edge fetches the next page and prepends it.
  */
 
 /** Bars per page. The leading page is server-rendered at this size too. */
 const PAGE_SIZE = 750;
 
-/**
- * How close to the left edge, in bars, triggers the next page. Wide enough
- * that the fetch usually resolves before the user reaches the end of what is
- * drawn, so the pan does not visibly stall against a wall.
- */
+/** Wide enough that the fetch usually resolves before the pan reaches the edge. */
 const PREFETCH_MARGIN = 20;
 
-/**
- * Bars visible on arrival — roughly eight months, which is what this chart
- * showed in total before paging existed. The window is unchanged; what changed
- * is that there is now three years behind it to pan into rather than a wall.
- */
+/** Bars visible on arrival — roughly eight months. */
 const INITIAL_VISIBLE = 180;
 
 export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: string }) {
@@ -49,10 +31,8 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
   const [loaded, setLoaded] = useState(candles.length);
   const { push } = useToast();
 
-  // The authoritative series data. A ref rather than state because the chart is
-  // imperative: re-rendering React on every prepend would recreate the chart
-  // and throw away the user's scroll position, which is the one thing paging
-  // exists to preserve.
+  // A ref, not state: re-rendering on every prepend would recreate the chart
+  // and lose the scroll position paging exists to preserve.
   const barsRef = useRef<Candle[]>(candles);
 
   useEffect(() => {
@@ -68,9 +48,8 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
           await import("lightweight-charts");
         if (disposed || !container.current) return;
 
-        // Read fresh each time. The nav on this page carries the theme toggle,
-        // so the palette can change under a mounted chart; a snapshot taken at
-        // mount left dark grid lines and dark axis text on the light theme.
+        // Read fresh: the theme can change under a mounted chart, and a canvas
+        // inherits no CSS.
         const readTokens = () => {
           const css = getComputedStyle(document.documentElement);
           const t = (n: string, f: string) =>
@@ -118,28 +97,17 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
         });
         series.setData(barsRef.current);
 
-        // Show the most recent INITIAL_VISIBLE bars, NOT fitContent().
-        //
-        // Two reasons, and both are load-bearing. Fitting 750 daily candles
-        // into a 22rem plot draws each one about a pixel wide, which is a
-        // smear rather than a chart — the extra depth is there to be panned
-        // into, not to be shown at once. And fitContent leaves the visible
-        // range starting at logical index 0, which is inside the prefetch
-        // margin, so every page load would immediately fetch a second page
-        // nobody asked for.
+        // Not fitContent(): 750 candles in a 22rem plot is a smear, and it
+        // would leave the range at index 0 — inside the prefetch margin, so
+        // every load would fetch a second page nobody asked for.
         const total = barsRef.current.length;
         chart.timeScale().setVisibleLogicalRange({
           from: Math.max(0, total - INITIAL_VISIBLE),
           to: total,
         });
 
-        // --- Paging older history in on scroll -------------------------------
-        //
-        // Guarded by plain locals rather than state: the subscription below can
-        // fire many times per second while panning, and a state update would
-        // not have committed before the next call read it. These are checked
-        // and set synchronously in the same tick, which is what makes "one
-        // request in flight" actually true.
+        // Guarded by locals, not state: this fires many times a second while
+        // panning, and a state update would not commit before the next read.
         let loading = false;
         let noMore = false;
 
@@ -157,9 +125,8 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
             if (disposed) return;
 
             if (!res.ok) {
-              // Existing bars stay on screen, so this is a background-refresh
-              // failure: a toast, not an inline error state. Keyed by cause so
-              // a pan that trips it repeatedly reports once.
+              // Bars stay on screen, so this is a background failure: a toast,
+              // keyed by cause so a repeated pan reports once.
               push({
                 key: "candles-older",
                 title: "Couldn't load earlier sessions",
@@ -181,10 +148,8 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
               return;
             }
 
-            // Defensive dedupe. `end_date` is exclusive so pages should abut
-            // exactly, but a duplicate timestamp makes lightweight-charts
-            // render wrong rather than throw — a silent corruption is worth
-            // one Set to rule out.
+            // Pages should abut exactly, but a duplicate timestamp makes
+            // lightweight-charts render wrong rather than throw.
             const seen = new Set(barsRef.current.map((c) => c.time));
             const fresh = older.filter((c) => !seen.has(c.time));
             if (fresh.length === 0) {
@@ -199,21 +164,9 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
 
             barsRef.current = merged;
 
-            // No range fix-up after this, deliberately. `setData` re-anchors
-            // the viewport by TIME rather than by logical index, so prepending
-            // leaves the visible bars exactly where they were and the pan
-            // continues uninterrupted.
-            //
-            // This was originally written the other way, re-applying the
-            // logical range offset by the number of bars added. Deleting that
-            // changed nothing — the two builds are pixel-identical, because
-            // the library had already done it. It came out rather than stay as
-            // a no-op wearing a comment claiming to be load-bearing.
-            //
-            // It is library behaviour rather than something enforced here, so
-            // the invariant is pinned in e2e/chart-history.spec.ts instead:
-            // swapping this line for fitContent() moves the user from
-            // 2023-10-31 to 2023-02-23 mid-pan, and that test fails.
+            // No range fix-up: `setData` re-anchors by time, not logical
+            // index, so the pan continues uninterrupted. That is library
+            // behaviour, so the invariant is pinned in e2e/chart-history.spec.ts.
             series.setData(merged);
             setLoaded(merged.length);
           } catch {
@@ -271,9 +224,7 @@ export function PriceChart({ candles, ticker }: { candles: Candle[]; ticker: str
             setHover(null);
             return;
           }
-          // Reads the ref, not the prop: the prop is the leading page only, and
-          // hovering a bar paged in later has to resolve against everything
-          // loaded rather than against what arrived with the document.
+          // The ref, not the prop: the prop is only the leading page.
           const bar = barsRef.current.find((c) => c.time === param.time);
           setHover(bar ?? null);
         });

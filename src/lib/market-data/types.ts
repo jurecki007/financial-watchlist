@@ -1,11 +1,9 @@
 /**
  * The market-data contract. Callers never learn which vendor answered.
  *
- * Nothing in this layer throws. A provider being rate-limited or down is an
- * expected operating condition on a free tier, not an exception — and an
- * exception thrown through a server component takes out the whole route.
- * Failures are values, so every caller is forced by the type system to decide
- * what to render when data is absent.
+ * Nothing here throws: on a free tier, being rate-limited is an operating
+ * condition rather than an exception, and one thrown through a server component
+ * takes out the route. Failures are values, so callers must handle them.
  */
 
 export type FailureReason =
@@ -16,14 +14,9 @@ export type FailureReason =
   /** 403 — the endpoint exists but the free plan does not include it. */
   | "not_entitled"
   /**
-   * 401, or the key is absent from the environment entirely. Our fault, not
-   * the provider's and not the plan's.
-   *
-   * Split out from `not_entitled` because collapsing the two told a very
-   * specific lie: a deployment with no `TWELVE_DATA_API_KEY` renders "this
-   * data sits behind a paid plan", which reads as a deliberate limit of the
-   * demo rather than a missing environment variable. That is the worst
-   * possible failure mode for a portfolio piece — it looks like a decision.
+   * 401, or no key at all — our fault, not the plan's. Kept separate from
+   * `not_entitled`, which would otherwise render a missing env var as a
+   * deliberate paid-plan limit.
    */
   | "misconfigured"
   /** The symbol does not exist. A user error, not a system one. */
@@ -39,11 +32,7 @@ export type Failure = {
 export type Success<T> = {
   ok: true;
   data: T;
-  /**
-   * When the data was fetched from the provider. Present whenever the value
-   * came from cache so the UI can say "as of 14:32" rather than implying it is
-   * live. Absent means it was just fetched.
-   */
+  /** Set when the value came from cache, so the UI can say "as of 14:32". */
   asOf?: string;
   /** True when a refresh failed and this is the last good value. */
   stale?: boolean;
@@ -54,9 +43,7 @@ export type Result<T> = Success<T> | Failure;
 export const fail = (reason: FailureReason): Failure => ({
   ok: false,
   reason,
-  // not_entitled will never succeed on this plan, not_found will never succeed
-  // for this symbol, and misconfigured cannot succeed until someone changes an
-  // environment variable. Retrying any of the three is wasted budget.
+  // None of these can succeed on a retry, so retrying is wasted budget.
   retryable: reason === "rate_limited" || reason === "unavailable",
 });
 
@@ -67,9 +54,8 @@ export const ok = <T>(data: T, extra?: Omit<Success<T>, "ok" | "data">): Success
 });
 
 /**
- * User-facing copy per failure. Lives here rather than in components so every
- * surface says the same thing, and so no raw provider message can reach a
- * browser: the mapping is total, and the vendor's own text is never an input.
+ * User-facing copy per failure. Central so every surface agrees, and so no raw
+ * provider message can reach a browser — the mapping is total.
  */
 export const FAILURE_COPY: Record<FailureReason, { title: string; body: string }> = {
   rate_limited: {
@@ -84,9 +70,8 @@ export const FAILURE_COPY: Record<FailureReason, { title: string; body: string }
     title: "Not included in this demo",
     body: "This data sits behind a paid plan and isn't part of the demo.",
   },
-  // Names our fault as ours. It deliberately does not name the variable: the
-  // fix belongs to whoever deploys this, and the browser is not where that
-  // conversation happens. The server log carries the variable name.
+  // Names our fault as ours, without naming the variable — that belongs in the
+  // server log, not the browser.
   misconfigured: {
     title: "Market data isn't configured",
     body: "This deployment is missing its market-data credentials, so prices and charts can't load.",
@@ -115,9 +100,9 @@ export type Quote = {
 };
 
 /**
- * Where a price sits in a range, 0–1. Returns undefined rather than a
- * misleading 0 when the range is absent or degenerate — a marker pinned to the
- * left edge would read as "at its low", which is a claim, not a gap.
+ * Where a price sits in a range, 0–1. Undefined rather than 0 when the range is
+ * absent — a marker at the left edge would read as "at its low", which is a
+ * claim rather than a gap.
  */
 export function positionInRange(
   price: number,

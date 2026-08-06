@@ -1,20 +1,11 @@
 /**
  * Evaluates active price alerts and emails the ones that have triggered.
  *
- * Runs on a schedule rather than while a user happens to be watching — that is
- * the whole point of the feature, and the reason it lives in an edge function
- * instead of a request handler.
+ * One quote request covers every distinct ticker across all users — Twelve
+ * Data allows 8 a minute, so one call per alert would not scale.
  *
- * Design notes:
- * - One quote request for ALL distinct tickers across every user's alerts.
- *   Twelve Data allows 8 requests a minute; one call per alert would exceed
- *   that with a dozen users.
- * - `triggered_at` is set BEFORE the email is sent. Sending twice is worse
- *   than not sending: a duplicate price alert reads as a second crossing that
- *   did not happen. A send that fails after the flag is set is logged and the
- *   alert simply does not re-fire, which is the safer direction to fail in.
- * - Uses the service key, so RLS does not apply. It must read every user's
- *   alerts, which is exactly the case RLS is designed to prevent for clients.
+ * Uses the service key, so RLS does not apply: it must read every user's
+ * alerts, which is exactly what RLS prevents for clients.
  */
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -23,14 +14,9 @@ const SERVICE_KEY =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TWELVE_DATA_API_KEY = Deno.env.get("TWELVE_DATA_API_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-// The fallback must name the domain verified in Resend, and it must match the
-// site's own domain. It previously read `finance-demo` — no "al" — while the
-// site is `financial-demo`. That went unnoticed while the secret carried the
-// same typo and Resend happened to have that domain verified; the moment the
-// verified domain changed, every send was rejected with a 403 that creates no
-// email record, so the failure was invisible from the Resend dashboard while
-// the app went on reporting the alerts as emailed. A sender that disagrees with
-// the site's own domain also reads as a phish to anyone who checks.
+// Must name the domain verified in Resend, and match the site's own domain: a
+// mismatched sender reads as a phish, and an unverified one is rejected with a
+// 403 that creates no email record, so the failure is invisible.
 const FROM =
   Deno.env.get("ALERTS_FROM") ?? "alerts@financial-demo.nyxiontech.com";
 const APP_URL =
@@ -63,12 +49,9 @@ function fired(a: Alert, price: number): boolean {
 }
 
 /**
- * Tickers arrive from `price_alerts`, where the only guards are upper-case and
- * a 20-character cap. `<B>`, and `<IMG SRC=X ONERROR=…>` at 20 characters,
- * both satisfy those — upper-casing does not disarm markup. This email is the
- * one place a ticker is rendered as HTML, so the escape belongs here. Same
- * reasoning as `serialiseJsonLd` on the web side: the values are trustworthy
- * today, and the guard is for the edit that is not.
+ * A ticker's only guards are upper-case and a 20-character cap, both of which
+ * `<B>` satisfies — upper-casing does not disarm markup. This email is the one
+ * place a ticker is rendered as HTML.
  */
 const esc = (s: string) =>
   s
@@ -78,30 +61,23 @@ const esc = (s: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-// Equity prices are two-decimal. `threshold` is numeric(20,6) and arrives as
-// 180.5, which reads as a typo next to a price of 180.12 unless both are fixed
-// to the same width.
+// `threshold` is numeric(20,6) and arrives as 180.5, which reads as a typo
+// beside a price of 180.12 unless both are fixed to two decimals.
 const money = (n: number) =>
   new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);
 
-// Shared with the auth templates in supabase/templates/. The duplication is
-// forced: those are Go templates read by GoTrue, this is a Deno string, and no
-// build step spans both. Keep the tokens in step by hand — they are the
-// design-system values from globals.css.
+// Mirrors the tokens in globals.css. Duplicated by necessity: the auth
+// templates are Go templates read by GoTrue, and no build step spans both.
 const GROUND = "#08090b";
 const RAISED = "#101216";
 const RULE = "#23262b";
 const FG = "#ecedef";
 const DIM = "#9a9ca1";
-// globals.css spends --faint #6b6e74 on this role, and it measures 3.90:1 on
-// the ground and 3.67:1 on the raised panel — under the 4.5:1 floor for body
-// text. The app gets away with it because every --faint string is repeated in
-// a louder form nearby, and because the reader can switch themes. An email has
-// neither escape hatch, so the tone is lifted to the nearest value that clears
-// AA against both surfaces (5.03:1 and 4.74:1) while staying visually quiet.
+// Lifted above --faint (#6b6e74), which measures 3.90:1 on the ground — under
+// the 4.5:1 floor, and email has no theme toggle to escape to.
 const MUTED = "#7d8086";
 const GOLD = "#d9a441";
 const SANS =
@@ -113,9 +89,8 @@ function email(a: Alert, price: number) {
   const up = a.condition === "above";
   const dir = up ? "risen above" : "fallen below";
 
-  // Colour carries the direction, but never alone — the arrow and the word
-  // survive a colourblind reader and a client that strips colour. Same rule as
-  // the deltas on the dashboard.
+  // Colour never carries direction alone — the arrow and the word survive a
+  // colourblind reader and a client that strips colour.
   const tone = up ? "#2dd4bf" : "#f87171";
   const arrow = up ? "&#9650;" : "&#9660;";
   const arrowText = up ? "^" : "v";
@@ -128,9 +103,8 @@ function email(a: Alert, price: number) {
 
   return {
     subject,
-    // A text/plain part is not a courtesy. Without one the message is a
-    // single-part text/html mail, which every spam filter scores against, and
-    // which reads as blank on a watch or a screen reader in plain-text mode.
+    // Without a plain-text part the message is html-only, which spam filters
+    // score against and plain-text readers render blank.
     text: [
       `${a.ticker} has ${dir} ${level}`,
       ``,
@@ -254,13 +228,9 @@ function email(a: Alert, price: number) {
 }
 
 Deno.serve(async (req) => {
-  // Deployed with --no-verify-jwt so the scheduler can call it without minting
-  // a token, which means this endpoint is reachable by anyone who knows the
-  // URL. Without a check, a stranger could hammer it and spend the Twelve Data
-  // daily budget. The shared secret is the gate.
-  //
-  // Timing-safe comparison is overkill for a header this long, but constant
-  // work costs nothing here and removes the question entirely.
+  // Deployed --no-verify-jwt so the scheduler can call it without a token,
+  // which leaves the URL reachable by anyone who finds it. The shared secret is
+  // the gate; the comparison is timing-safe because it costs nothing to be.
   const provided = req.headers.get("x-cron-secret") ?? "";
   const expected = Deno.env.get("CRON_SECRET") ?? "";
   const ok =
@@ -269,16 +239,12 @@ Deno.serve(async (req) => {
     provided.split("").reduce((acc, ch, i) => acc | (ch.charCodeAt(0) ^ expected.charCodeAt(i)), 0) === 0;
   if (!ok) return new Response("forbidden", { status: 403 });
 
-  // Optional ticker scope. Creating an alert invokes this for that one symbol,
-  // so an alert whose condition is already met fires immediately instead of
-  // looking pending until the next sweep. The cron calls it with no scope and
-  // gets the full sweep.
+  // Optional scope, used by alert creation so an already-met threshold fires
+  // at once. The cron passes none and gets the full sweep.
   //
-  // The value is interpolated into a PostgREST filter, so it is matched against
-  // a charset rather than escaped: `ticker=eq.X&active=is.false` in a query
-  // string is not a quoting problem an encoder would catch, it is a different
-  // query. Anything that is not ticker-shaped is ignored and the sweep runs
-  // unscoped, which is the safe direction to fail.
+  // Matched against a charset rather than escaped: this is interpolated into a
+  // PostgREST filter, where `ticker=eq.X&active=is.false` is a different query,
+  // not a quoting bug. Anything unexpected falls back to the unscoped sweep.
   const requested = new URL(req.url).searchParams.get("ticker")?.toUpperCase();
   const scope = requested && /^[A-Z0-9.\-]{1,20}$/.test(requested)
     ? requested
@@ -332,19 +298,13 @@ Deno.serve(async (req) => {
       const price = prices.get(alert.ticker);
       if (price === undefined || !fired(alert, price)) continue;
 
-      // Claim the alert BEFORE sending. A duplicate alert reads as a second
-      // crossing that never happened; a missed one is merely late.
+      // Claim before sending: a duplicate alert reads as a second crossing
+      // that never happened, while a missed one is merely late.
       //
-      // The claim is a compare-and-set, not a blind write. `triggered_at=is.null`
-      // moves the check into the UPDATE's own WHERE clause, so exactly one
-      // caller can win it, and `return=representation` reports who did — an
-      // empty result means somebody else got there first.
-      //
-      // This became load-bearing when alert creation started invoking this
-      // function directly: an hourly sweep and a create-time check can now be
-      // in flight against the same row at the same time, and the previous
-      // unconditional PATCH let both of them read "pending", both write, and
-      // both send.
+      // Compare-and-set, not a blind write — `triggered_at=is.null` puts the
+      // test in the UPDATE's own WHERE clause so only one caller can win, and
+      // an empty result means somebody else got there first. The hourly sweep
+      // and the create-time check can be in flight on the same row at once.
       const claimed = await db(
         `price_alerts?id=eq.${alert.id}&triggered_at=is.null`,
         {
@@ -382,9 +342,7 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        // `text` alongside `html` makes this multipart/alternative. Sending
-        // html on its own is a measurable spam signal and leaves plain-text
-        // readers with an empty message.
+        // `text` alongside `html` makes this multipart/alternative.
         body: JSON.stringify({ from: FROM, to, subject, html, text }),
       });
 

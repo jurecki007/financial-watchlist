@@ -3,19 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<!--
-  Email is not the web. Three constraints shape everything below:
-
-  1. Outlook on Windows renders with Word, which has no flexbox, no grid, no
-     background-image and unreliable padding. Layout is therefore tables, and
-     the button is VML.
-  2. Gmail strips <style> in several contexts (notably a non-Gmail account in
-     the Gmail app), so every style that matters is inline. The block below is
-     for things inline styles cannot express, and nothing depends on it.
-  3. The brand is dark, and clients "helpfully" invert dark-on-light. Declaring
-     the scheme up front stops Outlook.com and Apple Mail re-colouring a design
-     that is already dark.
--->
+<!-- Tables and inline styles because Outlook renders with Word and Gmail
+     strips <style>. The colour-scheme declarations stop clients inverting a
+     design that is already dark. -->
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark">
 <title>Confirm your email</title>
@@ -24,7 +14,6 @@
 <![endif]-->
 <style>
   :root { color-scheme: dark; supported-color-schemes: dark; }
-  /* Belt and braces for clients that honour <style> but not the meta. */
   body { margin:0 !important; padding:0 !important; width:100% !important; }
   a { text-decoration: none; }
   @media only screen and (max-width:600px) {
@@ -35,30 +24,26 @@
 </head>
 <body style="margin:0;padding:0;width:100%;background-color:#08090b;">
 
-<!-- Preheader: the grey line a client prints next to the subject. Left unset,
-     it scrapes the first body text, which here would be the eyebrow. The
-     trailing entities pad it out so no leaked markup follows it. -->
+<!-- Preheader: the preview line beside the subject. Unset, clients scrape the
+     wordmark instead. -->
 <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
   One tap and your watchlist is ready. This link expires in 24 hours.
   &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
 </div>
 
-<!-- Outlook does not paint background-color on <body>, so the ground colour
-     lives on a full-width table with a bgcolor attribute as well as a style. -->
+<!-- Outlook ignores background-color on <body>, hence the bgcolor attribute. -->
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#08090b" style="background-color:#08090b;">
   <tr>
     <td align="center" style="padding:40px 12px;">
 
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" class="sm-full" style="width:560px;max-width:560px;">
 
-        <!-- Wordmark -->
         <tr>
           <td class="sm-px" style="padding:0 0 22px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;font-size:11px;line-height:16px;letter-spacing:0.18em;text-transform:uppercase;color:#7d8086;">
             Financial Watchlist
           </td>
         </tr>
 
-        <!-- Card -->
         <tr>
           <td bgcolor="#101216" style="background-color:#101216;border:1px solid #23262b;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -75,9 +60,7 @@
                     we&rsquo;ll take you straight to the dashboard.
                   </p>
 
-                  <!-- Bulletproof button. VML for Word-based Outlook, a real
-                       anchor for everything else. arcsize 0% because the app's
-                       primary button is square. -->
+                  <!-- VML for Outlook, a real anchor everywhere else. -->
                   <!--[if mso]>
                   <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ .ConfirmationURL }}" style="height:46px;v-text-anchor:middle;width:210px;" arcsize="0%" stroke="f" fillcolor="#d9a441">
                     <w:anchorlock/>
@@ -96,10 +79,8 @@
                     paste this into your browser:
                   </p>
 
-                  <!-- The raw URL is not decoration. Buttons are stripped by
-                       corporate mail filters often enough that a link-only
-                       email is a link-less email for some readers.
-                       word-break keeps a long token from widening the card. -->
+                  <!-- Mail filters strip buttons often enough that the raw
+                       link has to be here too. -->
                   <p style="margin:8px 0 0 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;font-size:12px;line-height:19px;color:#d9a441;word-break:break-all;">
                     {{ .ConfirmationURL }}
                   </p>
@@ -110,7 +91,6 @@
           </td>
         </tr>
 
-        <!-- Footer -->
         <tr>
           <td class="sm-px" style="padding:22px 2px 0 2px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:20px;color:#7d8086;">
             Didn&rsquo;t sign up? Ignore this and nothing happens &mdash; the

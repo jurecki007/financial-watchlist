@@ -1,18 +1,6 @@
 /**
- * THESIS: the product demonstrates itself before it describes itself. The
- * market prints across the first viewport and the copy sits inside it — the
- * refusal is the category's centred hero over a flat gradient.
- *
- * OWN-WORLD: near-black ground, one metallic gold, XAU/USD candles drawing
- * themselves in. Mono for every numeral. Green and red appear only on price.
- *
- * STORY: a visitor sees live-feeling market data, understands this tracks
- * companies they choose, and signs up.
- *
- * FIRST VIEWPORT: full-bleed candlestick chart; headline and both CTAs sit
- * left over a scrim; instrument label in mono top-left.
- *
- * FORM: full-bleed chart hero — the direction pinned in CLAUDE.md.
+ * The product demonstrates itself before it describes itself: the market prints
+ * across the first viewport and the copy sits inside it, over a scrim.
  */
 import type { Metadata } from "next";
 import Link from "next/link";
