@@ -260,14 +260,35 @@ Deno.serve(async (req) => {
     provided.split("").reduce((acc, ch, i) => acc | (ch.charCodeAt(0) ^ expected.charCodeAt(i)), 0) === 0;
   if (!ok) return new Response("forbidden", { status: 403 });
 
+  // Optional ticker scope. Creating an alert invokes this for that one symbol,
+  // so an alert whose condition is already met fires immediately instead of
+  // looking pending until the next sweep. The cron calls it with no scope and
+  // gets the full sweep.
+  //
+  // The value is interpolated into a PostgREST filter, so it is matched against
+  // a charset rather than escaped: `ticker=eq.X&active=is.false` in a query
+  // string is not a quoting problem an encoder would catch, it is a different
+  // query. Anything that is not ticker-shaped is ignored and the sweep runs
+  // unscoped, which is the safe direction to fail.
+  const requested = new URL(req.url).searchParams.get("ticker")?.toUpperCase();
+  const scope = requested && /^[A-Z0-9.\-]{1,20}$/.test(requested)
+    ? requested
+    : "";
+
   const started = Date.now();
   try {
     const alerts: Alert[] = await db(
-      "price_alerts?select=id,user_id,ticker,condition,threshold&active=is.true&triggered_at=is.null",
+      "price_alerts?select=id,user_id,ticker,condition,threshold&active=is.true&triggered_at=is.null" +
+        (scope ? `&ticker=eq.${scope}` : ""),
     );
 
     if (alerts.length === 0) {
-      return Response.json({ checked: 0, sent: 0, ms: Date.now() - started });
+      return Response.json({
+        scope: scope || "all",
+        checked: 0,
+        sent: 0,
+        ms: Date.now() - started,
+      });
     }
 
     // One request for every distinct ticker across all users.
@@ -304,13 +325,29 @@ Deno.serve(async (req) => {
 
       // Claim the alert BEFORE sending. A duplicate alert reads as a second
       // crossing that never happened; a missed one is merely late.
-      await db(`price_alerts?id=eq.${alert.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          triggered_at: new Date().toISOString(),
-          active: false,
-        }),
-      });
+      //
+      // The claim is a compare-and-set, not a blind write. `triggered_at=is.null`
+      // moves the check into the UPDATE's own WHERE clause, so exactly one
+      // caller can win it, and `return=representation` reports who did — an
+      // empty result means somebody else got there first.
+      //
+      // This became load-bearing when alert creation started invoking this
+      // function directly: an hourly sweep and a create-time check can now be
+      // in flight against the same row at the same time, and the previous
+      // unconditional PATCH let both of them read "pending", both write, and
+      // both send.
+      const claimed = await db(
+        `price_alerts?id=eq.${alert.id}&triggered_at=is.null`,
+        {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            triggered_at: new Date().toISOString(),
+            active: false,
+          }),
+        },
+      );
+      if (!claimed?.length) continue;
 
       const users = await db(`profiles?select=id&id=eq.${alert.user_id}`);
       if (!users?.length) continue;
@@ -350,6 +387,7 @@ Deno.serve(async (req) => {
     }
 
     return Response.json({
+      scope: scope || "all",
       checked: alerts.length,
       sent,
       ms: Date.now() - started,
