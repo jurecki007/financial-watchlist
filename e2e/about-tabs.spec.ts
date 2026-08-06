@@ -1,12 +1,9 @@
 import { test, expect } from "./fixtures";
 
 /**
- * The About tab bar tracks the route on client-side navigation — the bug it
- * guards was invisible to a reload, because a layout does not re-render between
- * the routes that share it.
- *
- * Both assertions matter: the marker is what a sighted visitor sees,
- * `aria-current` is the whole signal for everyone else.
+ * The About tab bar tracks the route on client-side navigation. A layout does
+ * not re-render between the routes that share it, so this bug was invisible to
+ * a reload. `aria-current` is asserted as well as the marker.
  */
 
 const tabs = (page: import("@playwright/test").Page) =>
@@ -23,8 +20,7 @@ test("the tab marker follows client-side navigation between About pages", async 
   await expect(project).toHaveAttribute("aria-current", "page");
   await expect(author).not.toHaveAttribute("aria-current", "page");
 
-  // Click, do not navigate by URL — a fresh load remounts the layout and
-  // cannot reproduce this.
+  // Click, not a URL visit — a fresh load remounts the layout.
   await author.click();
   await page.waitForURL("**/about/author");
 
@@ -63,8 +59,7 @@ test("the marker is a single element that travels between tabs", async ({
   expect(to.x, "the marker did not move to the other tab").toBeGreaterThan(
     from.x,
   );
-  // It also resizes to the label it is under — the two tabs are different
-  // widths, so a fixed-width marker would sit wrong under one of them.
+  // The tabs are different widths, so the marker has to resize as well as move.
   expect(Math.round(to.width)).not.toBe(Math.round(from.width));
 });
 
@@ -97,8 +92,7 @@ test("reduced motion removes the travel, not the marker", async ({
 });
 
 test("both About pages are reachable without a session", async ({ page }) => {
-  // The audience for these two pages is people evaluating the work, so an auth
-  // gate on either would defeat the point of writing them.
+  // These pages exist to be read by people evaluating the work.
   for (const path of ["/about/project", "/about/author"]) {
     const res = await page.goto(path);
     expect(res?.status(), `${path} did not return 200`).toBe(200);

@@ -12,12 +12,15 @@ import { join } from "node:path";
  */
 
 function env(): Record<string, string> {
-  // Playwright does not read .env.local, and the app's own keys are the ones
-  // the test needs to talk to the same project the server is using.
+  // Playwright does not read .env.local, and the test needs the same project
+  // the server is using.
   const out: Record<string, string> = { ...process.env } as Record<string, string>;
   try {
     const raw = readFileSync(join(process.cwd(), ".env.local"), "utf8");
-    for (const line of raw.split("\n")) {
+    // Split on \r?\n, not \n. A CRLF checkout leaves a trailing \r on every
+    // line but the last, and `.` does not match \r — so `(.*)$` failed and the
+    // parser silently kept only the final variable in the file.
+    for (const line of raw.split(/\r?\n/)) {
       const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
       if (m && !out[m[1]]) out[m[1]] = m[2];
     }
