@@ -24,6 +24,17 @@
      opened a white menu. Not decoration; it is the only lever CSS has here. */
   color-scheme: dark;
 
+  /* The scrollbar is the one surface the page cannot paint itself, and
+     `color-scheme` alone only swaps it to the browser's *default* dark
+     scrollbar — measured at rgb(44,44,44) for the track: lighter than the
+     ground and a flat neutral grey with none of its blue cast, so a scrolling
+     page showed a second tone down its right edge.
+     Both values are our own tokens, so this flips with the theme in one
+     declaration. The thumb reuses --field-border because a scrollbar thumb is
+     exactly what that token is for — the edge of something you can grab — and
+     it clears 3:1 against the track in both themes. */
+  scrollbar-color: var(--field-border) var(--ground);
+
   /* Ground and ink */
   --ground: #08090b;
   --raised: #101216;
