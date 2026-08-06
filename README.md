@@ -17,8 +17,13 @@ reach is sensitive: RLS confines it to its own rows, exactly as it confines any 
 account, so the published password grants a tour and nothing more. Signing up normally
 works too — it just costs you a round trip through a confirmation email.
 
-> **Status: Phase 1 complete.** Building in phases — see [ROADMAP.md](ROADMAP.md), or the
-> live `/roadmap` page once Phase 3 ships. Full architecture write-up lands with Phase 6.
+> **Status: Phases 1–6 complete and deployed.** The MVP is done: auth, watchlist,
+> company pages, live market data, price alerts by email, and the polish pass. Phase
+> progress is tracked in [ROADMAP.md](ROADMAP.md) and rendered on the live
+> [`/roadmap`](https://financial-demo.nyxiontech.com/roadmap) page from that same file.
+> The architecture write-up is this document, below. Of the optional add-ons, one
+> remains deliberately unbuilt — the weekly digest email, listed with its reasoning at
+> the end of the roadmap.
 
 ## Stack
 
