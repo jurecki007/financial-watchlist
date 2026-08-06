@@ -90,8 +90,8 @@ test("theme toggle persists and applies before paint", async ({
   await page.getByRole("button", { name: /Switch to light theme/ }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
-  // The head script must apply it before paint; a reload landing on dark and
-  // flipping afterwards would be the flash this is designed to avoid.
+  // Applied before paint — landing on dark and flipping after is the flash
+  // this exists to prevent.
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
@@ -108,8 +108,7 @@ test("light theme keeps text readable", async ({ signedIn: page, user }) => {
   await page.getByRole("button", { name: /Switch to light theme/ }).click();
   await page.waitForTimeout(600);
 
-  // A flipped dark palette silently fails here: the ground goes light while
-  // the ink stays light too.
+  // A half-flipped palette fails here: light ground, still-light ink.
   const contrastOk = await page.evaluate(() => {
     const lum = (c: string) => {
       const [r, g, b] = (c.match(/\d+/g) ?? ["0", "0", "0"]).map(Number);

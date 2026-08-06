@@ -1,9 +1,8 @@
 import { test, expect, admin } from "./fixtures";
 
 /**
- * The journey the roadmap names: sign in, add a ticker, see it on the
- * dashboard. Plus the things that only break in a real browser — the auth
- * gate, the redirect-back, and teardown actually tearing down.
+ * Sign in, add a ticker, see it on the dashboard — plus the things that only
+ * break in a real browser: the auth gate, the redirect-back, and teardown.
  */
 
 test("unauthenticated visitors are sent to sign in, and returned afterwards", async ({
@@ -12,8 +11,7 @@ test("unauthenticated visitors are sent to sign in, and returned afterwards", as
 }) => {
   await page.goto("/dashboard");
 
-  // Middleware, not a component, does this — so it must hold before any React
-  // has run.
+  // Middleware does this, so it must hold before any React runs.
   await expect(page).toHaveURL(/\/login\?next=%2Fdashboard/);
   await expect(page.getByText("You'll need an account")).toBeVisible();
 
@@ -21,8 +19,7 @@ test("unauthenticated visitors are sent to sign in, and returned afterwards", as
   await page.getByLabel("Password").fill(user.password);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  // The `next` parameter has to survive the round trip, or a bookmarked deep
-  // link always dumps people on the dashboard root.
+  // `next` must survive the round trip, or deep links land on the root.
   await expect(page).toHaveURL(/\/dashboard/);
 });
 
@@ -50,14 +47,13 @@ test("search, add a company, and see it on the dashboard", async ({
 
   await page.getByLabel("Add a company").fill("AAPL");
 
-  // Results come from a live provider, so wait for the option rather than a
-  // fixed timeout.
+  // Live provider, so wait for the option rather than a fixed timeout.
   const option = page.getByRole("option", { name: /AAPL/ }).first();
   await expect(option).toBeVisible();
   await option.click();
 
-  // The card must name the company; the price may legitimately be absent if
-  // the provider is rate-limited, and the test should not fail for that.
+  // The price may legitimately be absent when rate-limited, so only the name
+  // is asserted.
   const card = page.getByText("AAPL", { exact: false }).first();
   await expect(card).toBeVisible();
   await expect(page.getByText("Nothing tracked yet")).toBeHidden();
@@ -132,15 +128,15 @@ test("focusing the empty search offers popular tickers", async ({
   signedIn: page,
 }) => {
   const field = page.getByLabel("Add a company");
-  // Nothing before focus — the panel is a response to intent, not decoration.
+  // The panel is a response to focus, not decoration.
   await expect(page.getByText("Popular")).toBeHidden();
 
   await field.click();
   await expect(page.getByText("Popular")).toBeVisible();
   await expect(page.getByRole("option", { name: /AAPL/ })).toBeVisible();
 
-  // Typing hands the panel over to the real search; two lists of companies
-  // with no way to tell which answers the query would be worse than none.
+  // Typing hands the panel to the real search — two lists would be worse than
+  // none.
   await field.fill("micro");
   await expect(page.getByText("Popular")).toBeHidden();
 });
@@ -157,8 +153,7 @@ test("popular suggestions exclude companies already watched", async ({
   await page.getByLabel("Add a company").click();
   await expect(page.getByText("Popular")).toBeVisible();
 
-  // Offering a duplicate makes the feature look broken when the insert
-  // silently no-ops on the unique constraint.
+  // A duplicate no-ops on the unique constraint, which looks broken.
   const list = page.getByRole("listbox");
   await expect(list.getByRole("option", { name: /AAPL/ })).toHaveCount(0);
   await expect(list.getByRole("option", { name: /MSFT/ })).toBeVisible();
@@ -171,8 +166,8 @@ test("a popular suggestion can be added in one click", async ({
   await page.getByLabel("Add a company").click();
   await page.getByRole("option", { name: /NVDA/ }).first().click();
 
-  // Wait for the card, not for the click. Querying the database straight after
-  // the click races the server action's round trip.
+  // Wait for the card: querying straight after the click races the server
+  // action's round trip.
   await expect(
     page.getByRole("link", { name: /NVDA/ }).first(),
   ).toBeVisible();
@@ -259,7 +254,7 @@ test("the search can be driven entirely from the keyboard", async ({
   const field = page.getByLabel("Add a company");
   await expect(field).toHaveAttribute("aria-expanded", "true");
 
-  // Arrow down twice, then Enter — no pointer involved.
+  // Keyboard only — no pointer involved.
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   const chosen = await page
@@ -288,8 +283,7 @@ test("a card shows where the price sits in its 52-week range", async ({
     .insert({ user_id: user.id, ticker: "AAPL", company_name: "Apple Inc" });
   await page.reload();
 
-  // The marker is positional and invisible to assistive tech, so the same
-  // fact must exist in words.
+  // The marker is positional, so the same fact must exist in words.
   await expect(
     page.getByText(/percent of the 52-week range/),
   ).toBeAttached();

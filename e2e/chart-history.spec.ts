@@ -20,8 +20,7 @@ test("panning to the left edge loads earlier sessions without moving the view", 
   const chart = page.locator(CHART);
   await expect(chart).toBeVisible();
 
-  // If the deployment has no market-data key the page renders the
-  // misconfigured state instead of a chart; that is not what this tests.
+  // Without a key the page renders the misconfigured state, not a chart.
   const label = (await chart.getAttribute("aria-label")) ?? "";
   test.skip(
     !/\d+ sessions/.test(label),
@@ -76,9 +75,8 @@ test("panning to the left edge loads earlier sessions without moving the view", 
     .locator("span")
     .first();
 
-  // The nudge away first is load-bearing: moving the pointer to where it
-  // already is fires no mousemove, so the read returns the previous value and
-  // the assertion compares it against itself.
+  // Nudge away first: moving the pointer to where it already is fires no
+  // mousemove, so the read would return the previous value.
   const dateUnderProbe = async () => {
     await page.mouse.move(probeX + 60, midY);
     await page.waitForTimeout(80);
@@ -118,7 +116,7 @@ test("the chart reports how much history it holds", async ({
     "no live market data available in this environment",
   );
 
-  // The count is the only signal a screen reader gets that panning did
-  // anything, since the canvas itself is a single role="img".
+  // The canvas is a single role="img", so the count is the only signal a
+  // screen reader gets that panning did anything.
   await expect(page.getByText(/\d+ sessions/)).toBeVisible();
 });
