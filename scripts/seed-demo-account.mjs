@@ -1,54 +1,34 @@
 /**
- * Creates (or restores) the read-only-ish demo account a reviewer logs in with.
+ * Creates or restores the demo account a reviewer signs in with.
  *
- * Why a script and not a migration: the account lives in `auth.users`, which is
- * GoTrue's table, not ours. Inserting into it by hand means reproducing whatever
- * password-hash format and column set the running GoTrue expects, and that
- * contract changes between releases — a migration that works today silently
- * writes an unusable row after the next platform upgrade. The Admin API is the
- * supported door, so this is a script that calls it rather than SQL we maintain
- * a private copy of.
+ * A script rather than a migration because the row lives in `auth.users`, which
+ * is GoTrue's: hand-writing it pins a password-hash format that changes between
+ * platform releases. The Admin API is the supported door.
  *
- * Why it is idempotent: the credentials are published in the README, so anyone
- * who reads the repo can log in and reorder the watchlist. That is an accepted
- * trade-off, not an accident — the mitigation is that this script restores the
- * account to a known state, so re-running it before sending the link is the
- * whole recovery procedure. Every run resets the password, the watchlist and
- * the alerts; nothing here accumulates.
+ * Idempotent by design. The credentials are published, so anyone can log in and
+ * rearrange things — every run resets the password, watchlist and alerts, which
+ * makes re-running this the whole recovery procedure.
  *
- * Why the account is created pre-confirmed: the deployed project has email
- * confirmation on (`supabase/config.toml` only governs the local stack, which
- * is why the signup page promises a confirmation mail). `email_confirm: true`
- * marks the address verified without sending anything — which matters here
- * beyond convenience, because the demo address is on a domain we do not own.
+ * Created pre-confirmed: the deployed project requires email confirmation, and
+ * `email_confirm: true` marks the address verified without sending anything.
  *
- * Usage:
- *   npm run seed:demo
- *
- * Requires SUPABASE_SECRET_KEY and the project URL in the environment, or in a
- * .env.local the npm script loads for you.
+ * Usage: npm run seed:demo
  */
 
 import { createClient } from "@supabase/supabase-js";
 
 // --- Configuration --------------------------------------------------------
 
-// example.com, and not a real company's domain, on purpose. RFC 2606 reserves
-// it precisely so it can be used in documentation without ever resolving, which
-// means no mail this account provokes can reach a person who did not ask for
-// it. The previous default was a live domain we did not own — a published
-// password on an address at somebody else's company is an invitation to send
-// them automated mail, and every send would have been a bounce charged against
-// our own sending reputation.
+// A reserved domain (RFC 2606), so nothing this account provokes can reach a
+// real person. The password is published, and the evaluator mails whatever
+// address the account carries.
 const EMAIL = process.env.DEMO_EMAIL ?? "fakturownia@example.com";
 const PASSWORD = process.env.DEMO_PASSWORD ?? "ReviewMe2026!";
 const DISPLAY_NAME = process.env.DEMO_DISPLAY_NAME ?? "Reviewer";
 
-// Six US large caps across four sectors. US-only because Finnhub's free tier is
-// US-only, and news and fundamentals come from Finnhub — a European ticker would
-// render a company page with two empty panels and look broken rather than
-// unentitled. The sector spread is deliberate: a watchlist that is six tech
-// names shows one shade of the delta colour on most days.
+// US-only because Finnhub's free tier is, and it supplies news and
+// fundamentals — a European ticker renders two empty panels. Spread across
+// sectors so the deltas are not all one colour.
 const WATCHLIST = [
   { ticker: "AAPL", company_name: "Apple Inc." },
   { ticker: "MSFT", company_name: "Microsoft Corporation" },
@@ -58,19 +38,10 @@ const WATCHLIST = [
   { ticker: "KO", company_name: "The Coca-Cola Company" },
 ];
 
-// Two alerts, one in each state the UI can show, and neither can send email.
-//
-// The evaluator scans `where active and triggered_at is null`, so the fired row
-// is invisible to it by construction, and the pending row's threshold is far
-// enough below any plausible price that it will not cross during a review.
-//
-// Both of those still matter now the address is a reserved one. `example.com`
-// means a fired alert can no longer reach a person, but it cannot be delivered
-// either: `check-price-alerts` mails the account's own address, so every send
-// would fail and count as a bounce against the Resend sending domain. The
-// account is a display of the product, not a demonstration of mail delivery —
-// what it should show a reviewer is both alert states rendered, which is what
-// the fired row does without a send. Seeded alerts must not fire.
+// One alert in each state the UI can show, and neither can fire. The evaluator
+// scans `where active and triggered_at is null`, so the fired row sits outside
+// its query, and the pending threshold is far from any plausible price. A send
+// to a reserved domain can only fail and register as a bounce.
 const ALERTS = [
   {
     ticker: "AAPL",
