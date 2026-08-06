@@ -12,11 +12,8 @@ export type AlertRow = {
 };
 
 /**
- * Create and manage price alerts for one company.
- *
- * The form itself is shared with /alerts — see components/alerts/alert-form.
- * The only difference between the two surfaces is whether the ticker is
- * already known, and that is a prop rather than a second implementation.
+ * Price alerts for one company. The form is shared with /alerts; the only
+ * difference is whether the ticker is already known, which is a prop.
  */
 export function AlertPanel({
   ticker,

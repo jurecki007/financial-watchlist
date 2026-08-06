@@ -1,13 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * E2E config.
- *
- * `webServer` builds and serves the production bundle rather than running
- * `next dev`. The dev server behaves differently enough around streaming,
- * caching and middleware that a passing dev-mode test says less than it
- * appears to — and the earlier stale-`.next` incident in this project is
- * exactly the kind of thing a production build catches and dev does not.
+ * E2E config. `webServer` builds and serves the production bundle: the dev
+ * server differs enough around streaming, caching and middleware that a passing
+ * dev-mode test says less than it appears to.
  */
 export default defineConfig({
   testDir: "./e2e",

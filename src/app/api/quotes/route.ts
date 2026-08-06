@@ -3,14 +3,9 @@ import { getQuotes } from "@/lib/market-data";
 import { getUser } from "@/lib/supabase/server";
 
 /**
- * Quotes for a set of tickers.
- *
- * Authenticated: an open proxy to a metered API is somebody else's free tier.
- * Anonymous traffic could burn the 800-call daily budget in minutes and the
- * bill lands on this project, not the caller.
- *
- * The keys never leave the server — that is the entire reason this route
- * exists rather than the browser calling Twelve Data directly.
+ * Quotes for a set of tickers. Authenticated because an open proxy to a metered
+ * API is somebody else's free tier, and the keys never leave the server — which
+ * is why this route exists rather than the browser calling Twelve Data.
  */
 export async function GET(request: NextRequest) {
   const user = await getUser();

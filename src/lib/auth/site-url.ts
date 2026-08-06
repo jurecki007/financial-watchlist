@@ -1,17 +1,11 @@
 import { headers } from "next/headers";
 
 /**
- * The absolute origin to hand to Supabase as an OAuth redirect target.
+ * The absolute origin handed to Supabase as an OAuth redirect target.
  *
- * Deriving this from the `origin` header alone is fragile: the header is
- * absent on some server-side navigations, and an empty origin produces a
- * relative redirect_to that Supabase cannot match against its allow-list —
- * which makes it fall back to the project's Site URL and bounce the user to
- * whatever that is. That is exactly the localhost symptom, and it fails
- * silently.
- *
- * Order: explicit configuration, then the forwarded host Vercel sets, then
- * origin, then localhost for local dev.
+ * The `origin` header alone is not enough: it is absent on some server-side
+ * navigations, and a relative redirect_to fails Supabase's allow-list, falling
+ * back to the project's Site URL — the localhost bounce, and it fails silently.
  */
 export async function siteUrl(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_SITE_URL;

@@ -1,11 +1,7 @@
 /**
- * The escape in serialiseJsonLd is a guard, and a guard that has never been
- * given something to catch is an assumption. These tests hand it the exact
- * payload it exists to stop.
- *
- * Every value in the graph is a static constant today, so this protects a
- * future edit rather than present input — which is precisely when a
- * </script> breakout would land unnoticed.
+ * A guard that has never been given something to catch is an assumption, so
+ * these hand serialiseJsonLd the exact payload it exists to stop. Every value
+ * is static today; this protects the edit that changes that.
  */
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -56,9 +52,7 @@ describe("landingPageGraph", () => {
     assert.ok(!JSON.stringify(graph).includes("SearchAction"));
   });
 
-  // The rule is not "no name" — it is that the graph never claims more than the
-  // site's own pages do. /about/author publishes the name and links the GitHub
-  // account, so the graph may state both and nothing further.
+  // The graph must never claim more than the site's own pages do.
   test("asserts no identity beyond what /about/author publishes", () => {
     const person = byType("Person")!;
     assert.equal(person.name, "Maciej Sacewicz");

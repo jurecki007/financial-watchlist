@@ -3,11 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { safeRedirectPath } from "@/lib/auth/routes";
 
 /**
- * OAuth and email-confirmation landing point.
- *
- * Supabase sends the user back here with a one-time code; exchanging it for a
- * session is what actually signs them in. The exchange must happen server-side
- * so the session cookie is set on a response the browser will store.
+ * OAuth and email-confirmation landing point. Supabase returns a one-time code;
+ * the exchange must happen server-side so the cookie lands on a response the
+ * browser will store.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;

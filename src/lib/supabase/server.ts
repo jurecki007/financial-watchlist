@@ -44,12 +44,9 @@ export async function createClient() {
  * without validating it, and will report a user for a forged or revoked token.
  */
 /**
- * The identity middleware already validated, read from the header it forwards
- * — ~105ms cheaper than re-asking Supabase.
- *
- * Safe because middleware sets these unconditionally on every matched request,
- * including to empty, so a forged header is always overwritten. A cache of
- * middleware's decision, never an independent source of truth.
+ * The identity middleware already validated, read from the header it forwards.
+ * Safe because middleware sets these unconditionally, including to empty, so a
+ * forged header is always overwritten — a cache of its decision, not a source.
  */
 export const getSessionUser = cache(async () => {
   const h = await headers();

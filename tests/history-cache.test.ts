@@ -1,9 +1,6 @@
 /**
- * The history cache exists because paging is driven by scrolling, which is
- * bursty: one pan can ask for the same page twice before the first answer
- * lands. These tests pin the two properties that make it safe to cache at all
- * — pages are keyed by everything that changes their contents, and the cache
- * never grows without bound.
+ * Pins the two properties that make the history cache safe: pages are keyed by
+ * everything that changes their contents, and it never grows without bound.
  *
  * Run: node --test tests/history-cache.test.ts
  */
@@ -42,9 +39,8 @@ describe("history keys", () => {
     );
   });
 
-  // Size is in the key because the same ticker and boundary at a different
-  // page size is a different set of bars. Omitting it would serve 750 bars to
-  // a request that asked for 100, or the reverse.
+  // Same ticker and boundary at a different page size is a different set of
+  // bars — omitting size would serve 750 to a request that asked for 100.
   test("a different page size is a different page", () => {
     assert.notEqual(
       historyKey("AAPL", "2024-01-01", 750),
