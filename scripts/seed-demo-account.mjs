@@ -1,0 +1,256 @@
+/**
+ * Creates (or restores) the read-only-ish demo account a reviewer logs in with.
+ *
+ * Why a script and not a migration: the account lives in `auth.users`, which is
+ * GoTrue's table, not ours. Inserting into it by hand means reproducing whatever
+ * password-hash format and column set the running GoTrue expects, and that
+ * contract changes between releases — a migration that works today silently
+ * writes an unusable row after the next platform upgrade. The Admin API is the
+ * supported door, so this is a script that calls it rather than SQL we maintain
+ * a private copy of.
+ *
+ * Why it is idempotent: the credentials are published in the README, so anyone
+ * who reads the repo can log in and reorder the watchlist. That is an accepted
+ * trade-off, not an accident — the mitigation is that this script restores the
+ * account to a known state, so re-running it before sending the link is the
+ * whole recovery procedure. Every run resets the password, the watchlist and
+ * the alerts; nothing here accumulates.
+ *
+ * Why the account is created pre-confirmed: the deployed project has email
+ * confirmation on (`supabase/config.toml` only governs the local stack, which
+ * is why the signup page promises a confirmation mail). `email_confirm: true`
+ * marks the address verified without sending anything — which matters here
+ * beyond convenience, because the demo address is on a domain we do not own.
+ *
+ * Usage:
+ *   npm run seed:demo
+ *
+ * Requires SUPABASE_SECRET_KEY and the project URL in the environment, or in a
+ * .env.local the npm script loads for you.
+ */
+
+import { createClient } from "@supabase/supabase-js";
+
+// --- Configuration --------------------------------------------------------
+
+const EMAIL = process.env.DEMO_EMAIL ?? "reviewer@fakturownia.pl";
+const PASSWORD = process.env.DEMO_PASSWORD ?? "ReviewMe2026!";
+const DISPLAY_NAME = process.env.DEMO_DISPLAY_NAME ?? "Reviewer";
+
+// Six US large caps across four sectors. US-only because Finnhub's free tier is
+// US-only, and news and fundamentals come from Finnhub — a European ticker would
+// render a company page with two empty panels and look broken rather than
+// unentitled. The sector spread is deliberate: a watchlist that is six tech
+// names shows one shade of the delta colour on most days.
+const WATCHLIST = [
+  { ticker: "AAPL", company_name: "Apple Inc." },
+  { ticker: "MSFT", company_name: "Microsoft Corporation" },
+  { ticker: "NVDA", company_name: "NVIDIA Corporation" },
+  { ticker: "AMZN", company_name: "Amazon.com, Inc." },
+  { ticker: "JPM", company_name: "JPMorgan Chase & Co." },
+  { ticker: "KO", company_name: "The Coca-Cola Company" },
+];
+
+// Two alerts, one in each state the UI can show, and neither can send email.
+//
+// The evaluator scans `where active and triggered_at is null`, so the fired row
+// is invisible to it by construction, and the pending row's threshold is far
+// enough below any plausible price that it will not cross during a review.
+// Both of those are load-bearing: `check-price-alerts` mails the account's own
+// address, and this account's address is at a domain we do not control, so a
+// fired alert would put automated mail on a real company's mail server and earn
+// a bounce against the Resend sending domain. Seeded alerts must not fire.
+const ALERTS = [
+  {
+    ticker: "AAPL",
+    condition: "below",
+    threshold: 100.0,
+    fired: false,
+  },
+  {
+    ticker: "MSFT",
+    condition: "above",
+    threshold: 400.0,
+    fired: true,
+  },
+];
+
+// --- Environment ----------------------------------------------------------
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+const secret = process.env.SUPABASE_SECRET_KEY;
+
+// Named individually rather than as one "missing config" message: the whole
+// point of failing early is to say which variable to go and set.
+const missing = [];
+if (!url) missing.push("NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL)");
+if (!secret) missing.push("SUPABASE_SECRET_KEY");
+if (missing.length > 0) {
+  console.error(`Cannot seed the demo account — missing ${missing.join(" and ")}.
+
+Set them in .env.local (npm run seed:demo loads it) or export them first.
+The secret key is Settings → API keys → secret (sb_secret_…) in the Supabase
+dashboard. It bypasses RLS, which is what lets this script write rows it does
+not own — keep it out of git.`);
+  process.exit(1);
+}
+
+// Guard against seeding production from a half-filled env: a publishable key
+// pasted into the secret slot fails later with a confusing RLS error instead of
+// an obvious one here.
+//
+// The check reads the legacy JWT rather than rejecting every `eyJ`. Both the
+// anon and the service_role legacy keys start that way, and only one of them is
+// wrong — refusing both would reject a key that works, which is how a guard
+// stops being trusted. `role` is the field that actually distinguishes them.
+if (secret.startsWith("sb_publishable_")) {
+  console.error(
+    "SUPABASE_SECRET_KEY holds a publishable key. It is subject to RLS and " +
+      "cannot write another user's rows — this script needs the secret key.",
+  );
+  process.exit(1);
+}
+if (secret.startsWith("eyJ")) {
+  let role;
+  try {
+    role = JSON.parse(
+      Buffer.from(secret.split(".")[1], "base64url").toString("utf8"),
+    ).role;
+  } catch {
+    console.error("SUPABASE_SECRET_KEY looks like a JWT but will not decode.");
+    process.exit(1);
+  }
+  if (role !== "service_role") {
+    console.error(
+      `SUPABASE_SECRET_KEY is a legacy key with role "${role}". This script ` +
+        `needs service_role (or a sb_secret_… key); "${role}" is subject to ` +
+        `RLS and cannot write another user's rows.`,
+    );
+    process.exit(1);
+  }
+}
+
+const admin = createClient(url, secret, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+// --- Helpers --------------------------------------------------------------
+
+/**
+ * The Admin API has no lookup-by-email, so this pages until it finds a match.
+ * Cheap here (a demo project has a handful of users) and bounded so a bad
+ * response can never spin forever.
+ */
+async function findUserByEmail(email) {
+  const target = email.toLowerCase();
+  const perPage = 200;
+
+  for (let page = 1; page <= 25; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+    if (error) throw new Error(`Could not list users: ${error.message}`);
+
+    const hit = data.users.find((u) => u.email?.toLowerCase() === target);
+    if (hit) return hit;
+    if (data.users.length < perPage) return null;
+  }
+  return null;
+}
+
+function fail(step, error) {
+  throw new Error(`${step}: ${error.message}`);
+}
+
+// --- Seed -----------------------------------------------------------------
+
+async function main() {
+  const existing = await findUserByEmail(EMAIL);
+  let user = existing;
+
+  if (existing) {
+    // Reset rather than delete-and-recreate: deleting cascades to the watchlist
+    // and alerts anyway, but it also changes the user id, and a stable id makes
+    // the account's rows easy to find in the dashboard when debugging.
+    const { error } = await admin.auth.admin.updateUserById(existing.id, {
+      password: PASSWORD,
+      email_confirm: true,
+      user_metadata: { full_name: DISPLAY_NAME },
+    });
+    if (error) fail("Could not reset the demo user", error);
+    console.log(`Reset existing demo user ${EMAIL}`);
+  } else {
+    const { data, error } = await admin.auth.admin.createUser({
+      email: EMAIL,
+      password: PASSWORD,
+      email_confirm: true,
+      user_metadata: { full_name: DISPLAY_NAME },
+    });
+    if (error) fail("Could not create the demo user", error);
+    user = data.user;
+    console.log(`Created demo user ${EMAIL}`);
+  }
+
+  // The profiles row belongs to the on_auth_user_created trigger (CLAUDE.md
+  // rule 5), so this updates it and never inserts it. On a fresh create the
+  // trigger has already written the right name from user_metadata; this line
+  // only matters on a re-run, where metadata changed but no insert fired.
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ display_name: DISPLAY_NAME })
+    .eq("id", user.id);
+  if (profileError) fail("Could not update the demo profile", profileError);
+
+  // Replace wholesale. Upserting would leave behind anything a visitor added,
+  // and "restores a known state" is the property this script exists to provide.
+  const { error: clearWatchlist } = await admin
+    .from("watchlist_items")
+    .delete()
+    .eq("user_id", user.id);
+  if (clearWatchlist) fail("Could not clear the watchlist", clearWatchlist);
+
+  // Explicit, staggered timestamps. The dashboard orders by added_at desc, and
+  // six rows inserted in one statement share a default now() to the microsecond
+  // — the order would then be whatever the planner returned, and would shuffle
+  // between runs.
+  const now = Date.now();
+  const { error: insertWatchlist } = await admin.from("watchlist_items").insert(
+    WATCHLIST.map((item, i) => ({
+      user_id: user.id,
+      ...item,
+      added_at: new Date(now - i * 3_600_000).toISOString(),
+    })),
+  );
+  if (insertWatchlist) fail("Could not seed the watchlist", insertWatchlist);
+
+  const { error: clearAlerts } = await admin
+    .from("price_alerts")
+    .delete()
+    .eq("user_id", user.id);
+  if (clearAlerts) fail("Could not clear the alerts", clearAlerts);
+
+  const { error: insertAlerts } = await admin.from("price_alerts").insert(
+    ALERTS.map((alert) => ({
+      user_id: user.id,
+      ticker: alert.ticker,
+      condition: alert.condition,
+      threshold: alert.threshold,
+      active: !alert.fired,
+      triggered_at: alert.fired ? new Date(now - 86_400_000).toISOString() : null,
+    })),
+  );
+  if (insertAlerts) fail("Could not seed the alerts", insertAlerts);
+
+  console.log(
+    `Seeded ${WATCHLIST.length} watchlist items and ${ALERTS.length} alerts.`,
+  );
+  console.log(`\nDemo account ready:\n  email    ${EMAIL}\n  password ${PASSWORD}`);
+}
+
+main().catch((error) => {
+  // The message only ever carries our own step label plus the API's message.
+  // Nothing here interpolates the key, and the client is never dumped.
+  console.error(`\nSeeding failed — ${error.message}`);
+  process.exit(1);
+});

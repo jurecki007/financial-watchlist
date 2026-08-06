@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "security": "bash scripts/check-env-exposure.sh",
+    "seed:demo": "node --env-file-if-exists=.env.local scripts/seed-demo-account.mjs",
     "test:rls": "bash scripts/run-rls-tests.sh",
     "test:routes": "node --test tests/route-protection.test.ts",
     "test": "npm run test:routes && npm run test:market && npm run test:toast && npm run test:schema && npm run test:history && npm run test:rls",

@@ -4,6 +4,19 @@ Track companies, watch prices and charts, read the news that moves them.
 
 **Live:** [financial-demo.nyxiontech.com](https://financial-demo.nyxiontech.com)
 
+**Sign in as a reviewer** — no signup, no confirmation email:
+
+| | |
+|---|---|
+| Email | `reviewer@fakturownia.pl` |
+| Password | `ReviewMe2026!` |
+
+The account arrives with six companies on its watchlist and two price alerts, one
+pending and one already fired, so every screen has real data on it. Nothing it can
+reach is sensitive: RLS confines it to its own rows, exactly as it confines any other
+account, so the published password grants a tour and nothing more. Signing up normally
+works too — it just costs you a round trip through a confirmation email.
+
 > **Status: Phase 1 complete.** Building in phases — see [ROADMAP.md](ROADMAP.md), or the
 > live `/roadmap` page once Phase 3 ships. Full architecture write-up lands with Phase 6.
 
@@ -49,6 +62,7 @@ check the runtime log for `[market-data] … is not set`.
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | eslint |
 | `npm run security` | env-exposure guard (same check CI runs) |
+| `npm run seed:demo` | create or restore the reviewer demo account (needs `SUPABASE_SECRET_KEY`) |
 | `npm run test:rls` | cross-user RLS isolation suite (needs `supabase start`) |
 | `npm run test:e2e` | Playwright journey against the production bundle |
 | `npm run test:routes` | auth-gate coverage (no server needed) |
@@ -235,6 +249,37 @@ deployed origin, and the callback must be in **Redirect URLs**. Supabase forward
 any `redirect_to` to the provider without checking it, then validates on the way
 back — and a miss falls back silently to Site URL. If Site URL is still the
 default, users land on `localhost` after signing in.
+
+### The demo account
+
+`npm run seed:demo` creates the reviewer account at the top of this file, or restores it
+if it already exists. It is a script rather than a migration because the row lives in
+`auth.users`, which belongs to GoTrue: writing it by hand means reproducing a
+password-hash format and column set that changes between platform releases, so a
+migration that works today can silently produce an unusable row after an upgrade. The
+Admin API is the supported door.
+
+Three properties are deliberate:
+
+**It is created pre-confirmed.** The deployed project requires email confirmation —
+`supabase/config.toml` sets `enable_confirmations = false` for the *local* stack only,
+which is why the signup page promises a confirmation mail. `email_confirm: true` marks
+the address verified without sending anything.
+
+**Every run resets it.** The password is published, so anyone reading this file can log
+in and rearrange the watchlist. That is the accepted cost of a reviewer not having to
+sign up, and re-running the seed is the entire recovery procedure — it resets the
+password, replaces the watchlist and replaces the alerts. Run it before you send the
+link.
+
+**Its seeded alerts cannot fire.** `check-price-alerts` emails the account's own
+address, and this account's address is on a domain we do not control. So the pending
+alert sits far below any plausible price, and the fired one is already `triggered_at`
+with `active = false` — invisible to the evaluator, which scans only
+`where active and triggered_at is null`. Both states render in the UI; neither sends
+mail. Note the residual risk: a visitor who *creates* an alert in this account can still
+cause a send to a third-party domain, which will bounce against the Resend sending
+domain. If that matters, move the account to an address you own.
 
 ### Auth latency
 
@@ -574,6 +619,60 @@ the header, 403 with a wrong one.
 
 Scheduling is set up in the Supabase dashboard rather than committed, because a
 cron job that calls this function has to carry the secret.
+
+## Emails
+
+Three messages leave this app: the **price alert** (built in the edge function,
+sent through Resend) and the **signup confirmation** and **password reset**
+(`supabase/templates/`, rendered by GoTrue). They share a visual system — dark
+ground, gold action, monospace figures — and are built to the same rules.
+
+**Email is not the web, and the markup shows it.** Outlook on Windows renders
+with Word: no flex, no grid, unreliable padding. So layout is tables, every
+style that matters is inline because Gmail drops `<style>` in several contexts,
+and each call to action is a bulletproof button — VML for Outlook, a real
+anchor for everyone else.
+
+**The dark theme is declared, not assumed.** `color-scheme` and
+`supported-color-schemes` are set so Apple Mail and Outlook.com stop
+"helpfully" re-colouring a design that is already dark.
+
+**Muted text is lifted above the app's own token.** `--faint` (`#6b6e74`)
+measures 3.90:1 on the ground and 3.67:1 on the raised panel — under the 4.5:1
+floor. The app can afford it because every faint string is repeated louder
+nearby and the reader can switch themes; an email has neither escape. Email
+muted text is `#7d8086`, the nearest value clearing AA on both surfaces
+(5.03:1 and 4.74:1). The paste-this-link fallback moved from `--gold-dim`
+(3.73:1) to `--gold` (8.34:1) — it is the path that has to work when a filter
+strips the button, so it cannot be the least legible thing in the message.
+
+**Every alert carries a `text/plain` part.** An html-only message scores
+against you with spam filters and reads as blank to anything in plain-text
+mode. The direction survives there too: `^` and `v` next to the figure, because
+colour does not exist in plain text.
+
+**Tickers are escaped before they reach the HTML.** `price_alerts` only
+constrains a ticker to upper-case and 20 characters, and `<B>` satisfies both —
+upper-casing does not disarm markup. Verified by rendering `<B>PWN</B>`,
+`"><IMG SRC=X>` and `O'BRIEN&CO` and asserting none survive as markup.
+
+### Deploying the auth templates
+
+`supabase/config.toml` binds them for the **local** stack only, which is what
+makes them testable in Inbucket before they reach an inbox. The deployed
+project keeps its templates in the dashboard under **Authentication → Emails**,
+and they are updated by pasting.
+
+Do not reach for `supabase config push`. It would carry these blocks up, and
+also `site_url = 127.0.0.1` and the absence of an `[auth.external.google]`
+block — the exact combination documented at the top of `config.toml` as the way
+to break Google sign-in.
+
+Only `confirmation` and `recovery` are themed. `invite`, `magic_link`,
+`email_change` and `reauthentication` stay on Supabase defaults because no flow
+in this app triggers them. Note that the app has no forgot-password UI yet, so
+`recovery` is reachable only from the dashboard — the template is ready ahead
+of the screen.
 
 ## Licence
 
