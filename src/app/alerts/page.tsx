@@ -169,7 +169,7 @@ export default async function AlertsPage() {
                   <section>
                     {bothGroups && (
                       <h2 className="mb-3 font-mono text-xs tracking-[0.18em] text-[var(--dim)] uppercase">
-                        Already sent
+                        Already triggered
                       </h2>
                     )}
                     <p className="mb-3 text-sm text-[var(--dim)]">
