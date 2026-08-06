@@ -42,7 +42,18 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm text-[var(--dim)]">{label}</span>
+      <span className="mb-2 flex items-baseline justify-between gap-3 text-sm text-[var(--dim)]">
+        {label}
+        {/* Optionality belongs on the label, not only in the hint below the
+            field. The label is what gets scanned when someone is deciding how
+            long this form is going to take; a hint under the input is read
+            after they have already counted it as work. */}
+        {!required && (
+          <span className="font-mono text-[11px] text-[var(--dim)]">
+            optional
+          </span>
+        )}
+      </span>
       <input
         name={name}
         type={type}
@@ -88,17 +99,11 @@ export function AuthForm({
       <form action={formAction} className="space-y-5">
         <input type="hidden" name="next" value={next} />
 
-        {isSignUp && (
-          <Field
-            label="Display name"
-            name="display_name"
-            type="text"
-            autoComplete="name"
-            required={false}
-            hint="Optional. We'll use the part before the @ if you skip it."
-          />
-        )}
-
+        {/* Required fields first, optional last.
+            Display name used to be the first thing this form asked for, which
+            front-loaded the one field nobody has to fill and made a two-field
+            signup look like a three-field one. Email and password also stay
+            adjacent this way, which is the pairing password managers expect. */}
         <Field
           label="Email"
           name="email"
@@ -113,6 +118,17 @@ export function AuthForm({
           autoComplete={isSignUp ? "new-password" : "current-password"}
           hint={isSignUp ? "At least 8 characters." : undefined}
         />
+
+        {isSignUp && (
+          <Field
+            label="Display name"
+            name="display_name"
+            type="text"
+            autoComplete="name"
+            required={false}
+            hint="We'll use the part before the @ if you skip it."
+          />
+        )}
 
         {/* Error state. role=alert so it is announced, and it sits directly
             above the button that produced it rather than at the page top. */}
