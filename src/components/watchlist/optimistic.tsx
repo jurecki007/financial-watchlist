@@ -8,18 +8,12 @@ import {
 } from "react";
 
 /**
- * Optimistic add and remove for the watchlist.
- *
- * The add control and the grid are separate components either side of a
- * Suspense boundary, so the optimistic state lives in a provider spanning both
- * rather than inside either one.
+ * Optimistic add and remove. The control and the grid sit either side of a
+ * Suspense boundary, so the state lives in a provider spanning both.
  *
  * `useOptimistic` rather than `useState`: React discards the optimistic value
- * automatically when the action's transition settles and the server's real
- * rows arrive. Hand-rolled state has to be cleared manually, and the moment
- * that clearing is missed — an action that throws, a revalidation that returns
- * different rows — the list shows something the database does not contain.
- * That is worse than no optimism at all in a product about money.
+ * when the transition settles. Hand-rolled state has to be cleared manually,
+ * and a missed clear shows rows the database does not contain.
  */
 
 export type Item = {

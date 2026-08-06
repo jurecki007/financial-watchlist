@@ -1,15 +1,9 @@
 /**
- * Renders every outbound email into mockups/emails/ so they can be opened in a
- * browser without sending anything.
+ * Renders every outbound email so it can be opened in a browser without sending
+ * anything. Generated, never hand-written — a hand-kept copy silently stops
+ * matching the email it claims to show.
  *
- * These are generated, never hand-written. A hand-kept copy of an email is a
- * copy that silently stops matching the email — the same drift CLAUDE.md warns
- * about for the docs, and worse here, because a mockup is the artefact people
- * trust when they are deciding whether the real thing looks right.
- *
- * The output is byte-faithful to what actually gets sent: no banner, no
- * "this is a preview" chrome. The only substitutions are the template
- * variables, and they are filled with values that are obviously examples.
+ * Byte-faithful: the only substitutions are the template variables.
  *
  * Usage: npm run mockups
  */
@@ -17,21 +11,17 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// public/, not a bare mockups/ at the root, for two reasons. Next serves
-// public/ verbatim, so /about/project can put each email in an iframe and show
-// a reviewer the real thing without sending one. And serving beats reading:
-// a server component doing readFileSync on a path outside public/ depends on
-// Next's output file tracing having noticed that path, which is a build that
-// works locally and 404s on Vercel.
+// public/, so Next serves these verbatim and /about/project can frame them.
+// Reading a path outside public/ from a server component would depend on
+// output file tracing noticing it — a build that works locally and 404s live.
 const OUT = "public/mockups/emails";
 const TEMPLATES = "supabase/templates";
 const ALERT_FN = "supabase/functions/check-price-alerts/index.ts";
 const APP_URL = "https://financial-demo.nyxiontech.com";
 const PROJECT = "https://fsboxdlbncegnhcjniaf.supabase.co";
 
-// Deliberately not a plausible token. A mockup that carries a credential-shaped
-// string trains the secret scanners to be ignored, and invites someone to try
-// clicking it.
+// Deliberately implausible: a credential-shaped string here trains the secret
+// scanners to be ignored.
 const fakeUrl = (type) =>
   `${PROJECT}/auth/v1/verify?token=EXAMPLE_NOT_A_REAL_TOKEN&type=${type}` +
   `&redirect_to=${APP_URL}/auth/callback`;
@@ -44,13 +34,10 @@ function renderAuthTemplate(file, type) {
 }
 
 /**
- * The alert email is a template literal inside a Deno function, so there is no
- * module Node can import — it reads `Deno.env` at load and starts a server.
- * Slicing the builder out and evaluating it keeps one source of truth without
- * restructuring the function to suit a mockup script.
- *
- * The markers are load-bearing, so a rename fails here loudly rather than
- * quietly emitting a stale mockup.
+ * The alert email lives in a Deno function that reads `Deno.env` at load, so
+ * there is no module Node can import. Slicing the builder out keeps one source
+ * of truth; the markers are load-bearing, so a rename fails loudly here rather
+ * than emitting a stale mockup.
  */
 function loadAlertBuilder() {
   const src = readFileSync(ALERT_FN, "utf8");

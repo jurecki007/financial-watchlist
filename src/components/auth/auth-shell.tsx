@@ -5,11 +5,9 @@ import { Footer } from "@/components/ui/footer";
 import { RevealOnScroll } from "@/components/ui/reveal-on-scroll";
 
 /**
- * Shared frame for /login and /signup so the two cannot drift apart.
- *
- * A single narrow column on the ground rather than a card floating on a
- * backdrop — the market-native register is flat and instrument-like, and a
- * raised card here would be the generic SaaS login wearing dark paint.
+ * Shared frame for /login and /signup so the two cannot drift apart. A narrow
+ * column on the ground rather than a floating card, which would be the generic
+ * SaaS login wearing dark paint.
  */
 export function AuthShell({
   title,
@@ -63,11 +61,7 @@ export function AuthShell({
   );
 }
 
-/**
- * Inline notice. Tones deliberately avoid green — green and red carry price
- * direction in this product, so an "info" notice uses gold and only genuine
- * failure borrows red.
- */
+/** Avoids green: it carries price direction here, so info is gold. */
 export function Notice({
   tone,
   children,

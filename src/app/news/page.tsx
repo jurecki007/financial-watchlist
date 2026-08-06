@@ -14,16 +14,11 @@ type Row = { ticker: string; company_name: string | null };
 type Item = Article & { ticker: string };
 
 /**
- * Headlines across everything the user watches.
+ * Headlines across everything the user watches. One Finnhub call per ticker,
+ * issued in parallel and mostly served from the 30-minute cache.
  *
- * One Finnhub call per ticker, which is fine on a 60-per-minute allowance and
- * mostly served from news_cache's 30-minute TTL anyway. Issued in parallel:
- * sequentially, a twelve-company watchlist would take twelve round trips
- * before anything rendered.
- *
- * A per-ticker failure is swallowed rather than propagated. One company's news
- * being unavailable is not a reason to show nothing — the feed simply omits it,
- * and the count of sources that answered is reported honestly at the top.
+ * A per-ticker failure is swallowed: one company's news being unavailable is
+ * not a reason to show nothing, and the count that answered is reported.
  */
 async function Feed({ rows }: { rows: Row[] }) {
   const results = await Promise.all(
@@ -80,11 +75,8 @@ async function Feed({ rows }: { rows: Row[] }) {
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  // Same type correction as the company page's Recent
-                  // coverage. The two-column list structure here is left alone
-                  // — the ticker gutter and the rules are doing real work
-                  // across 60 mixed-company rows, which is not the problem
-                  // that panel had.
+                  // The two-column structure stays: the ticker gutter earns its
+                  // place across 60 mixed-company rows.
                   className="text-base leading-relaxed transition-colors hover:text-[var(--gold)]"
                 >
                   {a.headline}

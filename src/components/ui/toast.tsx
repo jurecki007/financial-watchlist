@@ -11,16 +11,12 @@ import {
 } from "react";
 
 /**
- * Toasts for transient failures.
+ * Toasts for transient failures: a failure with data still on screen raises
+ * one and leaves the data alone, while a failure with nothing to fall back on
+ * renders inline instead.
  *
- * The split that matters (CLAUDE.md rule 8): a failure with data still on
- * screen raises a toast and leaves the data alone; a failure with nothing to
- * fall back on renders inline where the content would have been. A toast for
- * an empty screen tells the user nothing about what to do next.
- *
- * Deduplicated by key. Twelve Data allows 8 requests a minute, so a burst of
- * failures across a twelve-card dashboard is ONE underlying cause — without
- * dedup that is twelve stacked toasts describing a single rate limit.
+ * Deduplicated by key — a burst across a twelve-card dashboard is one
+ * underlying rate limit, not twelve.
  */
 
 export type Toast = {

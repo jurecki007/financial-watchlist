@@ -5,13 +5,9 @@ import { useEffect, useState } from "react";
 export type Theme = "dark" | "light";
 
 /**
- * Theme toggle.
- *
- * Dark is the default and the design's lead, per CLAUDE.md; light is the
- * alternative rather than a peer. The choice persists in localStorage and is
- * applied by a blocking script in <head> before first paint — applying it here
- * in an effect would show one frame of the wrong theme on every load, which is
- * more jarring than having no toggle at all.
+ * Dark is the lead theme; light is the alternative. The choice persists in
+ * localStorage and is applied by a blocking script in <head> — doing it in an
+ * effect would flash one frame of the wrong theme on every load.
  */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
@@ -51,9 +47,7 @@ export function ThemeToggle() {
         className="size-[17px]"
       >
         {theme === "dark" ? (
-          // Offer the sun when dark: the icon shows the destination, not the
-          // current state. Showing current state is the commoner choice and
-          // the one users misread.
+          // The icon shows the destination, not the current state.
           <>
             <circle cx="12" cy="12" r="4" />
             <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />

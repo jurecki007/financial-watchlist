@@ -1,17 +1,13 @@
 import { test, expect } from "./fixtures";
 
 /**
- * Paging older candles in on scroll.
+ * Paging older candles in on scroll. The assertion that matters is not "more
+ * bars arrived" but "more bars arrived and the view stayed where it was put":
+ * prepending shifts every logical index, so a chart that does not compensate
+ * jumps a whole page backwards mid-pan.
  *
- * This is the one behaviour in the chart that cannot be checked by reading the
- * code: whether the viewport survives a prepend. Adding bars to the front
- * shifts every logical index, so a chart that does not compensate jumps
- * backwards by a whole page exactly when the user is mid-pan. The assertion
- * that matters is therefore not "more bars arrived" but "more bars arrived and
- * the view stayed where it was put".
- *
- * Needs live provider credentials — skipped rather than failed without them,
- * because a missing key is an environment fact, not a regression.
+ * Skipped without provider credentials — a missing key is an environment fact,
+ * not a regression.
  */
 
 const CHART = 'div[role="img"][aria-label*="Daily price chart"]';
@@ -40,17 +36,15 @@ test("panning to the left edge loads earlier sessions without moving the view", 
   const before = await sessions();
   expect(before).toBeGreaterThan(500); // the leading page is 750
 
-  // Hold the response open. Without this the fetch resolves inside a single
-  // pan and there is no observable moment "before the prepend" to compare
-  // against — the assertion below needs both sides of the event.
+  // Hold the response open, or the fetch resolves inside one pan and there is
+  // no observable "before" to compare against.
   await page.route("**/api/candles**", async (route) => {
     await new Promise((r) => setTimeout(r, 2500));
     await route.continue();
   });
 
-  // Pan left by dragging the plot to the right. Dragging is what a user does;
-  // setting the logical range directly would bypass the subscription under
-  // test.
+  // Drag rather than setting the logical range, which would bypass the
+  // subscription under test.
   const box = (await chart.boundingBox())!;
   const midY = box.y + box.height / 2;
   const probeX = box.x + box.width * 0.5;
@@ -72,10 +66,8 @@ test("panning to the left edge loads earlier sessions without moving the view", 
     true,
   );
 
-  // Scoped to the chart's own wrapper — the innermost element containing the
-  // plot — then its first span, which is the OHLC row's date. A page-wide
-  // class selector matched the back-link instead and reported "unchanged" no
-  // matter what the chart did, which passed happily against a broken build.
+  // Scoped to the chart's own wrapper: a page-wide selector matched the
+  // back-link and reported "unchanged" against a broken build.
   const readoutDate = page
     .locator("div", {
       has: page.locator('div[role="img"][aria-label*="Daily price chart"]'),
@@ -84,13 +76,9 @@ test("panning to the left edge loads earlier sessions without moving the view", 
     .locator("span")
     .first();
 
-  // Read the date under a fixed point while the request is still in flight.
-  //
-  // The nudge away first is not superstition: the second call would otherwise
-  // move the pointer to where it already is, which fires no mousemove, leaves
-  // the crosshair where it was, and returns the *previous* reading. That made
-  // this assertion compare a value against itself and pass against a build
-  // with the compensation deleted.
+  // The nudge away first is load-bearing: moving the pointer to where it
+  // already is fires no mousemove, so the read returns the previous value and
+  // the assertion compares it against itself.
   const dateUnderProbe = async () => {
     await page.mouse.move(probeX + 60, midY);
     await page.waitForTimeout(80);
@@ -108,10 +96,8 @@ test("panning to the left edge loads earlier sessions without moving the view", 
     "panning to the left edge did not load any earlier sessions",
   ).toBeGreaterThan(before);
 
-  // THE invariant. Prepending shifts every logical index, so a chart that does
-  // not compensate slides the user a whole page backwards at the exact moment
-  // they are mid-pan. The bar under a fixed screen position must be the same
-  // bar it was before the data landed.
+  // The invariant: the bar under a fixed screen position must be the same bar
+  // it was before the data landed.
   const dateAfter = await dateUnderProbe();
   expect(
     dateAfter,

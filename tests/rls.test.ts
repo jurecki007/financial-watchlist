@@ -1,17 +1,12 @@
 /**
- * Cross-user isolation tests for Row Level Security.
+ * Cross-user isolation tests for RLS. Reading a policy proves nothing —
+ * a missing WITH CHECK, a policy on the wrong role, or a client holding the
+ * secret key all still read fine. The only proof is two real sessions trying
+ * to cross between them.
  *
- * These exist because reading a policy proves nothing. `using (auth.uid() =
- * user_id)` looks correct in every wrong version of itself — the failure modes
- * (a missing WITH CHECK, a policy granted to the wrong role, RLS enabled but
- * bypassed by a client holding the secret key) all still *read* fine. The only
- * way to know isolation holds is to hold two real sessions and try to cross
- * between them.
+ * Every test asserts the DENIED case: a pass means the database refused.
  *
- * Run against the local stack:  npm run test:rls
- *
- * Every test asserts the DENIED case. A passing suite means the database
- * refused something, not that it allowed something.
+ * Run against the local stack: npm run test:rls
  */
 import { test, before, after, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -147,9 +142,8 @@ describe("watchlist_items — cross-user isolation", () => {
   });
 
   test("bob cannot insert a row owned by alice", async () => {
-    // This is what WITH CHECK on the INSERT policy defends. A USING-only
-    // policy would let this through: bob could not *read* the row afterwards,
-    // but he would have written into her account.
+    // What WITH CHECK defends: a USING-only policy would let bob write into
+    // her account, even though he could not read it back.
     const { error } = await bob.db
       .from("watchlist_items")
       .insert({ user_id: alice.id, ticker: "TSLA" });
@@ -207,9 +201,8 @@ describe("watchlist_items — cross-user isolation", () => {
 });
 
 describe("cache tables are server-only", () => {
-  // RLS is enabled with zero policies, so these are unreachable by anyone
-  // holding the publishable key. Otherwise a client could enumerate every
-  // ticker the entire user base follows.
+  // RLS on with zero policies: unreachable by the publishable key, or a client
+  // could enumerate every ticker the user base follows.
   for (const table of ["quote_cache", "news_cache"]) {
     test(`${table} is invisible to an authenticated user`, async () => {
       await admin

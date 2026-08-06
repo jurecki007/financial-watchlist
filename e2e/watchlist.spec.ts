@@ -62,9 +62,8 @@ test("search, add a company, and see it on the dashboard", async ({
   await expect(card).toBeVisible();
   await expect(page.getByText("Nothing tracked yet")).toBeHidden();
 
-  // The card appears optimistically, so its presence proves nothing about the
-  // database. Poll the real rows instead — with optimistic UI the screen is no
-  // longer evidence of persistence.
+  // The card appears optimistically, so the screen is not evidence of
+  // persistence. Poll the real rows.
   await expect
     .poll(async () => {
       const { data } = await admin

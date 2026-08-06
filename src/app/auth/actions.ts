@@ -9,17 +9,15 @@ import { safeRedirectPath } from "@/lib/auth/routes";
 export type AuthState = { error?: string } | undefined;
 
 /**
- * Auth mutations run as server actions rather than from the browser so the
- * session cookie is written server-side in the same request that establishes
- * it. It also keeps the redirect decision on the server, where it cannot be
- * skipped by a client that fails to navigate.
+ * Server actions, so the session cookie is written in the same request that
+ * establishes it and the redirect cannot be skipped by a client that fails to
+ * navigate.
  */
 
 /**
- * Supabase error messages are written for developers and leak account
- * existence — "User already registered" tells an attacker which addresses have
- * accounts. Map to copy that names the problem and the recovery without
- * confirming whether an account exists.
+ * Supabase's own messages leak account existence — "User already registered"
+ * tells an attacker which addresses have accounts. Mapped to copy that names
+ * the recovery without confirming anything.
  */
 function friendly(message: string): string {
   const m = message.toLowerCase();

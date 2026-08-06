@@ -18,13 +18,9 @@ export const metadata = { title: "Dashboard — Financial Watchlist" };
 type Row = { id: string; ticker: string; company_name: string | null };
 
 /**
- * Prices, in their own Suspense boundary.
- *
- * The shell — heading, the add control, and the ticker of every row — renders
- * immediately from the database. Only prices wait on the market provider, so a
- * slow or rate-limited feed delays the numbers rather than the page. The
- * skeletons can already name which companies are loading, because the tickers
- * come from Postgres and not from the quote call.
+ * Prices in their own Suspense boundary: the shell renders immediately from the
+ * database, so a rate-limited feed delays the numbers rather than the page.
+ * The skeletons can name their companies, because tickers come from Postgres.
  */
 async function Prices({ rows }: { rows: Row[] }) {
   const result = await getQuotes(rows.map((r) => r.ticker));

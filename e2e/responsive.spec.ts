@@ -1,15 +1,12 @@
 import { test, expect, admin } from "./fixtures";
 
 /**
- * Responsive verification.
+ * Responsive verification. Playwright sets a real layout viewport; headless
+ * Chrome's --window-size only crops, so it measures a wide render through a
+ * narrow window.
  *
- * Playwright sets a real layout viewport, which headless Chrome's --window-size
- * did not — it cropped the output instead, so earlier attempts to check this
- * were measuring a wide render through a narrow window.
- *
- * The assertion is horizontal overflow. Nothing in this design is wider than
- * its container by intent, so a document wider than the viewport is always a
- * bug, and it is the one responsive failure a user cannot work around.
+ * The assertion is horizontal overflow — nothing here is wider than its
+ * container by intent, so a document wider than the viewport is always a bug.
  */
 const SIZES = [
   { name: "mobile", width: 375, height: 812 },

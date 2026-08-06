@@ -1,18 +1,12 @@
 import { test, expect } from "./fixtures";
 
 /**
- * The About tab bar tracks the route on client-side navigation.
+ * The About tab bar tracks the route on client-side navigation — the bug it
+ * guards was invisible to a reload, because a layout does not re-render between
+ * the routes that share it.
  *
- * This exists because the bug it guards was invisible to a reload. The tab bar
- * lives in a layout, and an App Router layout does not re-render when you move
- * between the routes that share it — so a path read at mount stayed frozen.
- * Every hard load looked correct; only clicking between the two tabs exposed
- * it, and it put `aria-current="page"` on the tab you had just left.
- *
- * Both assertions matter and they fail differently: the marker is what a
- * sighted visitor sees, `aria-current` is the entire signal for everyone else.
- *
- * /about is public, so no session is needed.
+ * Both assertions matter: the marker is what a sighted visitor sees,
+ * `aria-current` is the whole signal for everyone else.
  */
 
 const tabs = (page: import("@playwright/test").Page) =>
@@ -53,9 +47,7 @@ test("the marker is a single element that travels between tabs", async ({
   await page.goto("/about/project");
   const marker = tabs(page).locator("span[aria-hidden]");
 
-  // One marker for the bar, not one per tab. Two that cross-fade cannot
-  // travel, so this is the structural precondition for the animation rather
-  // than a style preference.
+  // One marker for the bar, not one per tab — two that cross-fade cannot travel.
   await expect(marker).toHaveCount(1);
 
   const box = async () => (await marker.boundingBox())!;
@@ -64,11 +56,8 @@ test("the marker is a single element that travels between tabs", async ({
   await tabs(page).getByRole("link", { name: "The author" }).click();
   await page.waitForURL("**/about/author");
 
-  // Deliberately not asserting an intermediate position here. Catching the
-  // marker mid-transition depends on when the route commits relative to the
-  // sample, which makes it flaky in CI — and a flaky test is worse than none.
-  // The reduced-motion case below pins the animation behaviour deterministically
-  // instead: if travel were removed entirely, that test still fails.
+  // No intermediate position asserted: catching the marker mid-transition is
+  // flaky in CI. The reduced-motion case below pins the behaviour instead.
   await page.waitForTimeout(500);
   const to = await box();
   expect(to.x, "the marker did not move to the other tab").toBeGreaterThan(
