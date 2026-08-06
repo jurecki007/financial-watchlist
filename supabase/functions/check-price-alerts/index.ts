@@ -23,7 +23,16 @@ const SERVICE_KEY =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TWELVE_DATA_API_KEY = Deno.env.get("TWELVE_DATA_API_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const FROM = Deno.env.get("ALERTS_FROM") ?? "alerts@finance-demo.nyxiontech.com";
+// The fallback must name the domain verified in Resend, and it must match the
+// site's own domain. It previously read `finance-demo` — no "al" — while the
+// site is `financial-demo`. That went unnoticed while the secret carried the
+// same typo and Resend happened to have that domain verified; the moment the
+// verified domain changed, every send was rejected with a 403 that creates no
+// email record, so the failure was invisible from the Resend dashboard while
+// the app went on reporting the alerts as emailed. A sender that disagrees with
+// the site's own domain also reads as a phish to anyone who checks.
+const FROM =
+  Deno.env.get("ALERTS_FROM") ?? "alerts@financial-demo.nyxiontech.com";
 const APP_URL =
   Deno.env.get("APP_URL") ?? "https://financial-demo.nyxiontech.com";
 

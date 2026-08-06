@@ -59,8 +59,17 @@ function AlertRow({ row }: { row: Row }) {
       <div className="flex items-center gap-4">
         {sent && (
           // Gold, not green — green means price direction in this product.
+          //
+          // "triggered", not "emailed". `triggered_at` records that the
+          // evaluator claimed this alert, which happens deliberately BEFORE the
+          // send so a crash cannot deliver the same crossing twice. The send
+          // can still fail afterwards — and did, silently, for three
+          // consecutive alerts when the Resend sender domain stopped being
+          // verified, while this label went on asserting mail had gone out.
+          // The row genuinely knows the threshold was crossed and when; it does
+          // not know an email arrived, so it no longer says so.
           <span className="font-mono text-[11px] text-[var(--gold)]">
-            emailed {new Date(row.triggered_at!).toLocaleDateString("en-GB")}
+            triggered {new Date(row.triggered_at!).toLocaleDateString("en-GB")}
           </span>
         )}
         <form action={deleteAlert}>
