@@ -91,8 +91,7 @@ const ALERTS = [
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
 const secret = process.env.SUPABASE_SECRET_KEY;
 
-// Named individually rather than as one "missing config" message: the whole
-// point of failing early is to say which variable to go and set.
+// Named individually — the point of failing early is to say which variable to set.
 const missing = [];
 if (!url) missing.push("NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL)");
 if (!secret) missing.push("SUPABASE_SECRET_KEY");
@@ -106,14 +105,9 @@ not own — keep it out of git.`);
   process.exit(1);
 }
 
-// Guard against seeding production from a half-filled env: a publishable key
-// pasted into the secret slot fails later with a confusing RLS error instead of
-// an obvious one here.
-//
-// The check reads the legacy JWT rather than rejecting every `eyJ`. Both the
-// anon and the service_role legacy keys start that way, and only one of them is
-// wrong — refusing both would reject a key that works, which is how a guard
-// stops being trusted. `role` is the field that actually distinguishes them.
+// A publishable key in the secret slot would otherwise surface later as a
+// confusing RLS error. Legacy keys are decoded rather than rejected on the
+// `eyJ` prefix: anon and service_role share it, and only one is wrong.
 if (secret.startsWith("sb_publishable_")) {
   console.error(
     "SUPABASE_SECRET_KEY holds a publishable key. It is subject to RLS and " +
@@ -148,9 +142,8 @@ const admin = createClient(url, secret, {
 // --- Helpers --------------------------------------------------------------
 
 /**
- * The Admin API has no lookup-by-email, so this pages until it finds a match.
- * Cheap here (a demo project has a handful of users) and bounded so a bad
- * response can never spin forever.
+ * The Admin API has no lookup-by-email, so page until one matches. Bounded so
+ * a bad response cannot spin forever.
  */
 async function findUserByEmail(email) {
   const target = email.toLowerCase();
@@ -181,9 +174,7 @@ async function main() {
   let user = existing;
 
   if (existing) {
-    // Reset rather than delete-and-recreate: deleting cascades to the watchlist
-    // and alerts anyway, but it also changes the user id, and a stable id makes
-    // the account's rows easy to find in the dashboard when debugging.
+    // Reset rather than recreate: deleting would also change the user id.
     const { error } = await admin.auth.admin.updateUserById(existing.id, {
       password: PASSWORD,
       email_confirm: true,
@@ -203,28 +194,23 @@ async function main() {
     console.log(`Created demo user ${EMAIL}`);
   }
 
-  // The profiles row belongs to the on_auth_user_created trigger (CLAUDE.md
-  // rule 5), so this updates it and never inserts it. On a fresh create the
-  // trigger has already written the right name from user_metadata; this line
-  // only matters on a re-run, where metadata changed but no insert fired.
+  // The trigger owns this row, so update and never insert. Only matters on a
+  // re-run, where metadata changed but no insert fired.
   const { error: profileError } = await admin
     .from("profiles")
     .update({ display_name: DISPLAY_NAME })
     .eq("id", user.id);
   if (profileError) fail("Could not update the demo profile", profileError);
 
-  // Replace wholesale. Upserting would leave behind anything a visitor added,
-  // and "restores a known state" is the property this script exists to provide.
+  // Replace wholesale — upserting would leave behind whatever a visitor added.
   const { error: clearWatchlist } = await admin
     .from("watchlist_items")
     .delete()
     .eq("user_id", user.id);
   if (clearWatchlist) fail("Could not clear the watchlist", clearWatchlist);
 
-  // Explicit, staggered timestamps. The dashboard orders by added_at desc, and
-  // six rows inserted in one statement share a default now() to the microsecond
-  // — the order would then be whatever the planner returned, and would shuffle
-  // between runs.
+  // Staggered explicitly: rows inserted in one statement share now() to the
+  // microsecond, so the dashboard's added_at ordering would shuffle per run.
   const now = Date.now();
   const { error: insertWatchlist } = await admin.from("watchlist_items").insert(
     WATCHLIST.map((item, i) => ({
@@ -260,8 +246,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  // The message only ever carries our own step label plus the API's message.
-  // Nothing here interpolates the key, and the client is never dumped.
+  // Carries only our step label and the API's message, never the key.
   console.error(`\nSeeding failed — ${error.message}`);
   process.exit(1);
 });

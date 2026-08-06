@@ -3,18 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isAuthRoute, isProtected } from "@/lib/auth/routes";
 
 /**
- * Refreshes the auth session and gates protected routes.
+ * Refreshes the auth session and gates protected routes. Access tokens are
+ * short-lived, and this is the only place that runs before every request and
+ * can write cookies.
  *
- * Two jobs, and the order matters. Supabase access tokens are short-lived; if
- * nothing refreshes them, a user gets signed out mid-session. Middleware is the
- * only place that runs before every request and can write cookies, so it owns
- * the refresh.
- *
- * The cookie handling below looks redundant but is not: cookies must be written
- * to BOTH the request (so handlers later in this same pass see the new session)
- * and the response (so the browser stores it). Creating a fresh NextResponse
- * without copying cookies across silently drops the refreshed token, and the
- * symptom is a user being logged out at random.
+ * Cookies go to BOTH the request (so later handlers in this pass see the new
+ * session) and the response (so the browser stores it). Dropping either
+ * silently signs the user out at random.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -40,22 +35,15 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // getUser, not getSession — this revalidates the token against the auth
-  // server. An access decision made from an unvalidated cookie is not an
-  // access decision. Must run immediately after client creation and before
-  // any early return, or the session is never refreshed.
-  //
-  // Measured: ~105ms with a real session, 0ms without one — supabase-js
-  // short-circuits locally when there is no parseable token, so anonymous
-  // traffic already pays nothing here and needs no guard of our own.
+  // getUser, not getSession: an access decision from an unvalidated cookie is
+  // not an access decision. Must run before any early return, or the session
+  // is never refreshed. ~105ms with a session, 0ms without.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Middleware has now validated this user, so downstream renders do not need
-  // to repeat the round-trip. Forwarding the result removes one of the three
-  // getUser calls a single button click used to cost. Set unconditionally —
-  // including to empty — so an inbound forged header is always overwritten.
+  // Forwarded so downstream renders need not repeat the round-trip. Set
+  // unconditionally, including to empty, so a forged header cannot survive.
   const { pathname } = request.nextUrl;
 
   const requestHeaders = new Headers(request.headers);
@@ -65,9 +53,8 @@ export async function updateSession(request: NextRequest) {
   // the nav can highlight the active route without every page passing it down.
   requestHeaders.set("x-pathname", pathname);
 
-  // Rebuilding the response to attach these headers would DISCARD any cookies
-  // setAll() wrote while refreshing the token — silently signing the user out
-  // on the next request. Carry them across explicitly.
+  // Rebuilding the response would discard cookies setAll() wrote while
+  // refreshing, signing the user out on the next request.
   const withHeaders = NextResponse.next({ request: { headers: requestHeaders } });
   supabaseResponse.cookies.getAll().forEach((c) => withHeaders.cookies.set(c));
   supabaseResponse = withHeaders;

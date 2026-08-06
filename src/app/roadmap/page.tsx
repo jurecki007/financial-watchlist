@@ -1,42 +1,22 @@
 /**
- * THESIS: build progress as a settlement ledger, not a status dashboard. It
- * refuses the category default — a grid of phase cards with percentage rings.
- * A ledger is answerable: every line is either settled or it is not, and the
- * unsettled ones say what they are waiting on.
+ * Build progress as a ledger rather than a status dashboard: every line is
+ * either settled or says what it is waiting on.
  *
- * OWN-WORLD: near-black ground, one metallic gold, hairline rules that fill to
- * their proportion like a tape. Mono for every numeral so fractions align down
- * a column; sans for prose. Green and red are reserved for price direction
- * elsewhere in this product, so state is carried by marker form — filled,
- * hollow, dash — and by weight, never by traffic-light colour.
- *
- * STORY: a reader learns what is built, what is not, and what the unbuilt work
- * is blocked on, without needing the repo.
- *
- * FIRST VIEWPORT: kicker, one-line thesis, then the aggregate as a mono
- * fraction above a full-measure rule that fills gold. Phase 1 begins in view.
- *
- * FORM: ledger; first on the ordered list; shaped directly rather than seeded,
- * as the surface is narrowly specified and inherits a committed world.
+ * State is carried by marker form — filled, hollow, dash — because green and
+ * red mean price direction everywhere else in this product.
  */
 import type { Metadata } from "next";
 import { loadRoadmap, type Item, type Phase } from "@/lib/roadmap";
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/ui/footer";
 
-// Deliberately NOT force-static. The nav is session-aware, and a page
-// prerendered at build time has no request to read identity or pathname from —
-// a signed-in visitor was shown "Sign in". The roadmap content still comes
-// from a file read, so rendering per request costs a filesystem hit, not a
-// network one.
+// Not force-static: the nav is session-aware, and a prerendered page has no
+// request to read identity from, so a signed-in visitor was shown "Sign in".
+// The cost is a filesystem read per request, not a network one.
 //
-// Revisited during the SEO pass, and kept. This is the site's richest
-// indexable page and it is served uncached, which is a real TTFB cost. Paying
-// it down means moving the session-aware nav client-side, which trades that
-// cost for a nav that flickers signed-out → signed-in on every load. On a
-// two-page indexable surface with no field data to show the TTFB is hurting
-// anything, the flicker is the worse defect. Worth reopening if CrUX ever
-// reports an LCP problem here.
+// The alternative — moving the nav client-side — trades TTFB for a nav that
+// flickers signed-out on every load. Worth reopening if CrUX shows an LCP
+// problem here.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {

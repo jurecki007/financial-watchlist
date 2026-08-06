@@ -3,14 +3,12 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
 
 /**
- * Supabase client for server components, route handlers, and server actions.
+ * Supabase client for server components, route handlers and server actions.
+ * Still the publishable key — this holds the *user's* session, not admin
+ * rights, so RLS applies as it does in the browser.
  *
- * Still the publishable key — this is the *user's* session on the server, not
- * an admin client. It reads whatever the signed-in user is allowed to read,
- * and RLS applies exactly as it does in the browser.
- *
- * Must be created per request. Next.js caches modules across requests, so a
- * shared client would leak one user's session into another's.
+ * Per request: Next caches modules, so a shared client would leak one user's
+ * session into another's.
  */
 export async function createClient() {
   const cookieStore = await cookies();
@@ -29,9 +27,8 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // Server components cannot set cookies. This is expected and safe:
-            // middleware refreshes the session on every request, so the write
-            // that matters already happened before this component rendered.
+            // Server components cannot set cookies; middleware already wrote
+            // the refreshed session before this rendered.
           }
         },
       },
@@ -40,27 +37,19 @@ export async function createClient() {
 }
 
 /**
- * The signed-in user, or null.
+ * The signed-in user, or null. React `cache()` so components in one render
+ * share a single round-trip rather than each paying ~150ms.
  *
- * Wrapped in React `cache()`, so several components in one render share a
- * single round-trip instead of each paying ~150ms. The cache is per-request,
- * so one user's identity can never be served to another.
- *
- * Deliberately `getUser()` and not `getSession()`. getSession reads the JWT
- * straight from the cookie without asking Supabase whether it is still valid,
- * so on the server it will happily report a user for a forged or revoked
- * token. getUser revalidates against the auth server. Anything making an
- * access decision must use this.
+ * `getUser()`, never `getSession()`: the latter reads the JWT from the cookie
+ * without validating it, and will report a user for a forged or revoked token.
  */
 /**
- * The identity middleware already validated on this request, read from the
- * header it forwards. ~105ms cheaper than re-asking Supabase.
+ * The identity middleware already validated, read from the header it forwards
+ * — ~105ms cheaper than re-asking Supabase.
  *
- * Safe to trust because middleware sets these headers unconditionally on every
- * matched request — including to empty when signed out — so a value a client
- * tries to forge is always overwritten before any component sees it. It is a
- * cache of middleware's decision, never an independent source of truth: the
- * gate in middleware.ts is still what grants or denies access.
+ * Safe because middleware sets these unconditionally on every matched request,
+ * including to empty, so a forged header is always overwritten. A cache of
+ * middleware's decision, never an independent source of truth.
  */
 export const getSessionUser = cache(async () => {
   const h = await headers();

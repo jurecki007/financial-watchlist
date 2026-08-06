@@ -1,10 +1,8 @@
 /**
  * Which routes require a session.
  *
- * Deliberately free of Next imports. The policy is the security-critical part
- * and must be testable on its own — when this lived inside middleware.ts it
- * dragged in `next/server` and could only be exercised by booting the whole
- * framework, which in practice means it would not have been tested at all.
+ * Free of Next imports on purpose: the policy is the security-critical part,
+ * and keeping it framework-free is what makes it unit-testable.
  */
 
 /** Requires a session. Matched as a path segment prefix. */
@@ -20,14 +18,11 @@ export const PROTECTED = [
 export const AUTH_ROUTES = ["/login", "/signup"];
 
 /**
- * Segment-aware prefix match. A bare `startsWith` would gate `/settingsomething`
- * as though it were under `/settings`, so the boundary has to be a `/` or the
- * end of the path.
+ * Segment-aware: a bare `startsWith` would gate `/settingsomething` as though
+ * it sat under `/settings`.
  */
 export function isProtected(pathname: string): boolean {
-  return PROTECTED.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  return PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 export function isAuthRoute(pathname: string): boolean {
@@ -35,16 +30,12 @@ export function isAuthRoute(pathname: string): boolean {
 }
 
 /**
- * Sanitises a post-authentication destination.
+ * Sanitises a post-authentication destination. An open redirect here is a
+ * phishing primitive — it bounces the user off-site moments after they typed a
+ * password.
  *
- * An open redirect here is a real phishing primitive: a crafted
- * `/login?next=//evil.com` bounces a user off-site at the exact moment they
- * have just typed a password and are primed to trust what they see. Only
- * plain, same-origin relative paths survive.
- *
- * `//evil.com` is the case worth naming — it is protocol-relative, so a bare
- * `startsWith("/")` check treats it as local and hands the browser an
- * absolute URL.
+ * `//evil.com` is the case that catches people: protocol-relative, so a bare
+ * `startsWith("/")` treats it as local.
  */
 export function safeRedirectPath(
   value: unknown,
@@ -53,8 +44,7 @@ export function safeRedirectPath(
   if (typeof value !== "string" || value.length === 0) return fallback;
   if (!value.startsWith("/")) return fallback;
   if (value.startsWith("//")) return fallback;
-  // Backslashes are normalised to forward slashes by some browsers, so
-  // `/\evil.com` can escape the origin too.
+  // Some browsers normalise backslashes, so `/\evil.com` escapes the origin too.
   if (value.startsWith("/\\")) return fallback;
   return value;
 }

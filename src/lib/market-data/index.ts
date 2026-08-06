@@ -1,10 +1,6 @@
 /**
- * The public market-data interface.
- *
- * Callers import from here and nowhere else. Which vendor answers a given
- * question is an implementation detail that has already changed once during
- * this build and will change again — the point of the seam is that changing it
- * touches this directory only.
+ * The public market-data interface. Callers import from here and nowhere else,
+ * so which vendor answers stays an implementation detail.
  */
 import { readCache, throughCache, writeCache } from "./cache.ts";
 import { historyKey, readHistory, writeHistory } from "./history-cache.ts";
@@ -24,10 +20,8 @@ import {
 export * from "./types.ts";
 
 /**
- * Quotes for a whole watchlist in one provider request.
- *
- * Cached per ticker so a dashboard that adds one company does not refetch the
- * other eleven. Only the tickers that are actually stale reach the network.
+ * Quotes for a whole watchlist in one request. Cached per ticker, so adding one
+ * company does not refetch the other eleven.
  */
 export async function getQuotes(
   tickers: string[],
@@ -52,9 +46,8 @@ export async function getQuotes(
     }
   }
 
-  // The OLDEST contributing timestamp, not the newest. "As of 14:32" has to be
-  // true of every number on screen; reporting the freshest row would overstate
-  // how current the stalest card is.
+  // The oldest contributing timestamp: "as of 14:32" has to be true of every
+  // number on screen, not just the freshest.
   const oldest = (times: string[]) =>
     times.length ? times.slice().sort()[0] : undefined;
 
@@ -99,10 +92,9 @@ export async function getQuote(ticker: string): Promise<Result<Quote>> {
 /**
  * Chart data. Twelve Data owns this — Finnhub gates candles behind a paid plan.
  *
- * `before` pages backwards for the chart's load-older-on-scroll. Those pages
- * end at a fixed past date and are therefore immutable, which is why they get
- * the in-memory cache and the leading page does not: the leading page contains
- * today's bar, which is still moving.
+ * `before` pages backwards for load-older-on-scroll. Those pages end at a fixed
+ * past date and are immutable, which is why they are cached and the leading
+ * page — carrying today's still-moving bar — is not.
  */
 export async function getCandles(
   ticker: string,

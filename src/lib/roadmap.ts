@@ -1,18 +1,10 @@
 /**
  * Parses ROADMAP.md into the projection published at /roadmap.
  *
- * ROADMAP.md is the single source of truth — ticking a box there updates the
- * live page. But the file is written for us, not for an audience: it contains
- * build-strategy language, an effort:impact table, and advice about what to cut
- * if time runs short. A reviewer landing on /roadmap must not be reading our
- * notes about how to impress them.
- *
- * So content is opted IN, never out. This parser reads exactly two things:
- * checkbox lines inside `### Phase N` headings, and the name column of the
- * add-ons table. Everything else in the file — prose, tables, the cutoff
- * advice, the note explaining this very mechanism — is unreachable by
- * construction. A future edit to ROADMAP.md cannot leak strategy onto the live
- * site, because nothing but those two shapes is ever looked at.
+ * Content is opted IN, never out: this reads checkbox lines under `### Phase N`
+ * headings and the name column of the add-ons table, and nothing else. The file
+ * also holds build-strategy notes written for us rather than for an audience,
+ * so no future edit to it can reach the live page.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -52,10 +44,8 @@ export type Roadmap = {
 const CHECKBOX = /^-\s+\[( |x)\]\s+(.*)$/i;
 const PHASE_HEADING = /^###\s+Phase\s+(\d+)\s*[—-]\s*(.+)$/;
 /**
- * A group label is a line that is ENTIRELY bold, optionally with a trailing
- * colon. Matching a leading `**…**` instead would swallow ordinary prose that
- * merely starts with a bold clause — "**Phase 1 complete.** Two follow-ups…"
- * became a sub-heading and mislabelled every item under it.
+ * Entirely bold, not merely starting with a bold clause — otherwise
+ * "**Phase 1 complete.** Two follow-ups…" becomes a heading.
  */
 const GROUP_LABEL = /^\*\*(.+?)\*\*:?\s*$/;
 const MVP_HEADING = /^##\s+.*MVP/;
@@ -72,11 +62,7 @@ function clean(raw: string): string {
     .trim();
 }
 
-/**
- * An item is blocked if its annotation says so. Reading state from the prose
- * the author already writes means there is no second place to keep it in sync
- * — a blocked note and a blocked marker cannot disagree.
- */
+/** Read from the prose the author already writes, so there is no second place to sync. */
 function stateOf(checked: boolean, note: string | undefined): ItemState {
   if (checked) return "shipped";
   if (note && /blocked|waiting on/i.test(note)) return "blocked";

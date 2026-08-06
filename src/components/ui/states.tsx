@@ -1,22 +1,12 @@
 import type { ReactNode } from "react";
 
 /**
- * The three async states, as shared primitives.
- *
- * They live together because every async surface owes all three, and keeping
- * them in one file makes a missing one obvious. CLAUDE.md rule 6.
+ * The three async states, together in one file so a missing one is obvious.
  */
 
 /**
- * Skeleton block.
- *
- * Opacity pulse, never a shimmer sweep — shimmer is a consumer-app tic that
- * fights the market-native register. Under prefers-reduced-motion the pulse
- * stops, which is correct rather than degraded.
- *
- * The `skeleton` class holds it invisible for 200ms first. Content that
- * streams in faster than that replaces the placeholder before it was ever
- * seen, so a fast load shows no skeleton at all rather than a flash.
+ * Opacity pulse, never a shimmer sweep. Held invisible for 200ms first, so
+ * content that streams in faster replaces it before it was ever seen.
  */
 export function Skeleton({
   className = "",
@@ -35,12 +25,8 @@ export function Skeleton({
 }
 
 /**
- * A number-shaped placeholder.
- *
- * Width is set in `ch` of the mono face, which is the real digit advance, so
- * the block occupies roughly the space the figure will. It reads as "a number
- * is arriving here" rather than as a generic bar, and the row does not resize
- * when the value lands.
+ * A number-shaped placeholder. Width in `ch` of the mono face, so it occupies
+ * the space the figure will and the row does not resize when it lands.
  */
 export function NumberSkeleton({
   digits = 6,
@@ -78,12 +64,8 @@ export function EmptyState({
 }
 
 /**
- * Error state with an optional retry.
- *
- * Takes already-mapped copy — a raw provider message must never reach here.
- * `retry` is omitted for failures that cannot succeed on a second attempt (a
- * paywalled endpoint, an unknown symbol): offering a button that cannot work
- * is worse than offering none.
+ * Takes already-mapped copy; a raw provider message must never reach here.
+ * `retry` is omitted where a second attempt cannot succeed.
  */
 export function ErrorState({
   title,
@@ -107,11 +89,8 @@ export function ErrorState({
 }
 
 /**
- * "as of 14:32" badge.
- *
- * Shown whenever data came from cache. Being explicit about age is precisely
- * what licenses serving a stale price instead of an error — the number is only
- * misleading if we imply it is live.
+ * Shown whenever data came from cache. Being explicit about age is what
+ * licenses serving a stale price instead of an error.
  */
 export function AsOf({ time, stale }: { time?: string; stale?: boolean }) {
   if (!time) return null;

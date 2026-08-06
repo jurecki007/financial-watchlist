@@ -7,37 +7,18 @@ import { NumberSkeleton, Skeleton } from "@/components/ui/states";
 import { positionInRange, type Quote } from "@/lib/market-data";
 
 /**
- * THESIS: a watchlist card exists to answer "should I look closer?", and a
- * price plus a percentage cannot answer that. It refuses the category default
- * — a bordered tile carrying four facts — by spending its space on where the
- * price sits rather than on chrome.
- *
- * OWN-WORLD: no border. A hairline range track carries the information the box
- * carried none of; the grid gap is already separation. Mono numerals, gold
- * marker, green and red confined to the delta.
- *
- * STORY: at a glance the reader sees today's move AND how far the price is
- * from its yearly extremes — which is what makes one card worth opening.
- *
- * FIRST VIEWPORT: ticker and name top-left, price large beneath, delta under
- * that, 52-week track along the bottom.
- *
- * FORM: ranged tile; first on the ordered list; shaped directly, extending an
- * established surface.
+ * A watchlist card answers "should I look closer?", which a price and a
+ * percentage cannot. It spends its space on where the price sits in the year
+ * rather than on chrome, so there is no border — the grid gap is separation.
  *
  * The card and its skeleton share one Frame so they cannot disagree on size.
  */
 
 /**
- * Where the price sits between its 52-week extremes.
+ * Where the price sits between its 52-week extremes — what turns 309 into a
+ * judgement. Every field ships in the quote already, so it costs no request.
  *
- * This is what turns a number into a judgement: 309 means nothing; 309 near the
- * top of a 202–345 year means something. Every field it needs already ships in
- * the quote response, so it costs no extra request.
- *
- * A track with a marker rather than a bar filling from the left, because the
- * value is a POSITION, not a quantity — a filled bar would imply 75% *of*
- * something.
+ * A marker rather than a filled bar, because this is a position, not a quantity.
  */
 function YearRange({ quote }: { quote: Quote }) {
   const pos = positionInRange(quote.price, quote.yearLow, quote.yearHigh);

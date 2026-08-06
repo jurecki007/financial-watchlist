@@ -1,22 +1,17 @@
 import { fail, type Failure, type FailureReason } from "./types.ts";
 
 /**
- * Shared fetch for both providers.
- *
- * Every provider error becomes one of four reasons here, so no vendor-specific
- * status code or message survives past this file. Raw responses are logged
- * server-side only — a provider's error body can echo the query string, which
- * on some APIs carries the key.
+ * Shared fetch for both providers. Every provider error becomes one of the
+ * shared reasons here, so no vendor status or message survives this file, and
+ * raw bodies stay in the server log — some echo the query string.
  */
 
 const TIMEOUT_MS = 8_000;
 
 export type HttpResult<T> = { ok: true; body: T } | Failure;
 
-// 401 and 403 are deliberately not collapsed. 401 means the credential was
-// rejected or never sent — our configuration. 403 means it was accepted and the
-// plan does not cover the endpoint — the free tier doing what it says. They
-// need different copy because they need different people to fix them.
+// 401 and 403 must not collapse: 401 is our configuration, 403 is the plan's
+// limit. Different copy, because different people can fix them.
 function classify(status: number): FailureReason {
   if (status === 429) return "rate_limited";
   if (status === 401) return "misconfigured";
@@ -26,16 +21,9 @@ function classify(status: number): FailureReason {
 }
 
 /**
- * Refuse to call a provider with no credential.
- *
- * Without this the empty string is sent as `apikey=`, the provider answers 401,
- * and the user is told the data is behind a paid plan. Checking first turns a
- * misleading round-trip into an honest local answer, and puts the variable's
- * actual name in the server log where the person who can fix it will look.
- *
- * The name is logged, never returned — `FAILURE_COPY.misconfigured` is what
- * reaches the browser, per the rule that vendor and deployment internals stay
- * server-side.
+ * Refuse to call a provider with no credential. Otherwise `apikey=` is sent,
+ * the provider answers 401, and the user is told the data sits behind a paid
+ * plan. The variable name goes to the server log, never to the browser.
  */
 export function missingKey(varName: string, value: string): Failure | null {
   if (value) return null;
@@ -49,14 +37,12 @@ export async function getJson<T>(
   url: string,
   { label }: { label: string },
 ): Promise<HttpResult<T>> {
-  // AbortSignal.timeout rather than a manual race: a hung socket otherwise
-  // holds the request open until the platform kills the function, which turns
-  // one slow provider into a page that never renders.
+  // A hung socket would otherwise hold the request open until the platform
+  // kills the function, turning one slow provider into a page that never renders.
   try {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
-      // Caching is ours to control via quote_cache; Next's fetch cache would
-      // hide staleness we need to reason about explicitly.
+      // Caching is ours via quote_cache; Next's would hide staleness.
       cache: "no-store",
       headers: { accept: "application/json" },
     });
@@ -68,8 +54,7 @@ export async function getJson<T>(
 
     return { ok: true, body: (await res.json()) as T };
   } catch (err) {
-    // TimeoutError, network failure, malformed JSON — all "the provider did
-    // not give us usable data", which is one condition from a caller's view.
+    // Timeout, network failure, malformed JSON — one condition to a caller.
     console.error(`[market-data] ${label} threw:`, err);
     return fail("unavailable");
   }
@@ -87,13 +72,12 @@ export function twelveDataError(
   const b = body as { status?: string; code?: number; message?: string };
   if (b.status !== "error") return null;
   if (b.code === 429) return "rate_limited";
-  // Twelve Data answers a missing or wrong apikey with code 401 in a 200-status
-  // envelope, which is exactly how an unset env var reached the browser dressed
-  // as a paid-plan limit. Same split as classify() above.
+  // Same 401/403 split as classify(): an unset key once reached the browser
+  // dressed as a paid-plan limit.
   if (b.code === 401) return "misconfigured";
   if (b.code === 403) return "not_entitled";
   if (b.code === 404) return "not_found";
-  // Their 400 for an unknown symbol reads as a not-found to a user.
+  // Their 400 for an unknown symbol is a not-found to a user.
   if (b.code === 400 && /symbol/i.test(b.message ?? "")) return "not_found";
   return "unavailable";
 }
