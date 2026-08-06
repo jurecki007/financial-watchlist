@@ -8,7 +8,7 @@ Track companies, watch prices and charts, read the news that moves them.
 
 | | |
 |---|---|
-| Email | `reviewer@fakturownia.pl` |
+| Email | `fakturownia@example.com` |
 | Password | `ReviewMe2026!` |
 
 The account arrives with six companies on its watchlist and two price alerts, one
@@ -273,14 +273,22 @@ sign up, and re-running the seed is the entire recovery procedure — it resets 
 password, replaces the watchlist and replaces the alerts. Run it before you send the
 link.
 
-**Its seeded alerts cannot fire.** `check-price-alerts` emails the account's own
-address, and this account's address is on a domain we do not control. So the pending
-alert sits far below any plausible price, and the fired one is already `triggered_at`
-with `active = false` — invisible to the evaluator, which scans only
-`where active and triggered_at is null`. Both states render in the UI; neither sends
-mail. Note the residual risk: a visitor who *creates* an alert in this account can still
-cause a send to a third-party domain, which will bounce against the Resend sending
-domain. If that matters, move the account to an address you own.
+**Its address is deliberately unroutable.** `fakturownia@example.com` sits on the
+domain RFC 2606 reserves for documentation, so it resolves for nobody. The credentials
+are published, which means any visitor can log in and create an alert — and
+`check-price-alerts` mails whatever address the account carries. An earlier draft used a
+real company's domain, which would have turned a published password into a way to send
+a third party automated mail they never asked for, with every attempt bouncing against
+our own Resend sending domain. A reserved domain removes the recipient entirely.
+
+**Its seeded alerts still cannot fire.** The pending alert sits far below any plausible
+price, and the fired one already has `triggered_at` set with `active = false` — invisible
+to the evaluator, which scans only `where active and triggered_at is null`. Both states
+render in the UI and neither sends mail. That is not redundant with the address choice:
+`example.com` stops a send reaching a person, but a send would still be *attempted* and
+fail. The account exists to show the product, not to demonstrate mail delivery — the
+alert emails themselves are on [`/about/project`](https://financial-demo.nyxiontech.com/about/project),
+where they can be read without one being sent.
 
 ### Auth latency
 
