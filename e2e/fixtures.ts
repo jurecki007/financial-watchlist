@@ -4,16 +4,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * A disposable, confirmed user per test.
+ * A disposable, confirmed user per test, created through the admin API —
+ * driving the signup form would block every run on email confirmation.
  *
- * Created through the admin API rather than by driving the signup form,
- * because email confirmation would otherwise block every run. The signup form
- * itself is covered by its own test — this fixture exists so the tests that
- * are *about* the watchlist do not each re-test signup.
- *
- * Every user is torn down afterwards, and the assertion that teardown left
- * nothing behind is part of the suite: a test that quietly accumulates rows in
- * a shared project stops being repeatable.
+ * Teardown is asserted, not assumed: a suite that accumulates rows in a shared
+ * project stops being repeatable.
  */
 
 function env(): Record<string, string> {

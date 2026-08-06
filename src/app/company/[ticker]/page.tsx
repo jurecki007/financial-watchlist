@@ -17,12 +17,8 @@ import { Footer } from "@/components/ui/footer";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Company detail.
- *
- * Four independent data sources, four Suspense boundaries. Fundamentals coming
- * from a different vendor than the chart means one of them being rate-limited
- * must not blank the other — which is the whole reason the page is composed
- * this way rather than awaiting everything up front.
+ * Company detail: four independent sources, four Suspense boundaries, so one
+ * vendor being rate-limited cannot blank the rest of the page.
  */
 
 export async function generateMetadata({
@@ -79,16 +75,10 @@ async function Price({ ticker }: { ticker: string }) {
 }
 
 /**
- * 750 bars — about three years of sessions, against the 180 (roughly eight
- * months) this used to ship.
- *
- * The number is a payload decision, not an API one. Depth is billed per
- * request, so 750 bars and 180 cost the same single credit; what 750 costs is
- * ~62kB of JSON in the RSC payload against ~15kB. The provider would serve
- * 5000 for that same credit, but at ~400kB it would dominate the page.
- *
- * Anything earlier is paged in by the chart on scroll, so this is the point at
- * which the first pan stops being the common case — not a ceiling on history.
+ * 750 bars, about three years. A payload decision, not an API one: depth is
+ * billed per request, so this costs the same credit as 180 but ~62kB of RSC
+ * payload against ~15kB. The provider would serve 5000 for the same credit, at
+ * ~400kB. Anything earlier is paged in on scroll.
  */
 const LEADING_PAGE = 750;
 
@@ -163,11 +153,8 @@ async function News({ ticker }: { ticker: string }) {
   }
 
   return (
-    // Spacing alone could not carry the separation here. A wrapped headline
-    // sets its own lines 26px apart, and the gap between articles was 28px —
-    // 1.08x, which the eye cannot read as a boundary, so eight articles merged
-    // into one block. The separator is what distinguishes them; the space
-    // around it is what keeps it from feeling like a table.
+    // Spacing alone cannot carry this: a wrapped headline sets its lines 26px
+    // apart and the gap between articles was 28px, so they merged into a block.
     <ul className="space-y-5">
       {res.data.map((a, i) => (
         <li key={a.id}>
@@ -206,9 +193,7 @@ async function News({ ticker }: { ticker: string }) {
               href={a.url}
               target="_blank"
               rel="noopener noreferrer"
-              // Was 0.95rem/leading-snug: under the 1rem body floor and tighter
-              // than default, when light-on-dark wants the opposite — a little
-              // more leading, not less.
+              // Light-on-dark wants a little more leading, not less.
               className="text-base leading-relaxed transition-colors hover:text-[var(--gold)]"
             >
               {a.headline}

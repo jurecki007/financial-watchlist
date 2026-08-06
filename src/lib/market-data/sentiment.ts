@@ -1,15 +1,10 @@
 /**
- * Headline sentiment, derived locally from the words in the headline.
+ * Headline sentiment, matched locally against a lexicon of financial verbs —
+ * not an LLM call, which would be a request per headline.
  *
- * Deliberately NOT an LLM call or a paid sentiment API. Every headline on the
- * news page would be a request, the free tiers do not offer it, and a demo that
- * spends money per headline is a demo nobody can run.
- *
- * The honest framing matters more than the accuracy: this is a lexicon match
- * over financial verbs, not analysis. It is labelled as a signal, never as a
- * judgement, and where the words are mixed or absent it returns "neutral"
- * rather than guessing — a wrong confident tag on financial news is worse than
- * no tag.
+ * Framing matters more than accuracy here: it is labelled a signal, never a
+ * judgement, and returns "neutral" rather than guessing. A confident wrong tag
+ * on financial news is worse than no tag.
  */
 export type Sentiment = "positive" | "negative" | "neutral";
 

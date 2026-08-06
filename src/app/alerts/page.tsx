@@ -19,21 +19,11 @@ type Row = {
 };
 
 /**
- * Every alert in one place — and now the place to set one.
+ * Every alert in one place, and the place to set one — the company page shares
+ * the same form component rather than copying it.
  *
- * This page used to be read-only: it listed alerts and told you to go to a
- * company page to make one. That is a dead end on the screen whose entire
- * subject is alerts. Someone arriving here wants to arm a price, and sending
- * them to the watchlist to pick a company to then find the form is three
- * navigations to reach a control that fits above the list.
- *
- * The company page keeps its own form. Neither is a copy — both render
- * components/alerts/alert-form, which differs only in whether the ticker is
- * already known.
- *
- * Waiting and sent are separated rather than sorted together. They answer
- * different questions — "what am I still watching for" versus "what have I
- * been told" — and mixing them makes the first hard to read.
+ * Waiting and triggered are separated rather than sorted together: they answer
+ * different questions, and mixing them makes the first hard to read.
  */
 function AlertRow({ row }: { row: Row }) {
   const sent = Boolean(row.triggered_at);
@@ -58,16 +48,11 @@ function AlertRow({ row }: { row: Row }) {
       </div>
       <div className="flex items-center gap-4">
         {sent && (
-          // Gold, not green — green means price direction in this product.
+          // Gold, not green — green means price direction here.
           //
-          // "triggered", not "emailed". `triggered_at` records that the
-          // evaluator claimed this alert, which happens deliberately BEFORE the
-          // send so a crash cannot deliver the same crossing twice. The send
-          // can still fail afterwards — and did, silently, for three
-          // consecutive alerts when the Resend sender domain stopped being
-          // verified, while this label went on asserting mail had gone out.
-          // The row genuinely knows the threshold was crossed and when; it does
-          // not know an email arrived, so it no longer says so.
+          // "triggered", not "emailed": `triggered_at` records that the
+          // evaluator claimed the alert, which happens before the send. The row
+          // knows the threshold was crossed; it does not know mail arrived.
           <span className="font-mono text-[11px] text-[var(--gold)]">
             triggered {new Date(row.triggered_at!).toLocaleDateString("en-GB")}
           </span>
@@ -99,9 +84,8 @@ export default async function AlertsPage() {
       .from("price_alerts")
       .select("id, ticker, condition, threshold, triggered_at, active")
       .order("created_at", { ascending: false }),
-    // The form offers the watchlist rather than a free-text ticker box: an
-    // alert on a company you do not follow is a dead letter, and a typo'd
-    // symbol would validate fine here and then simply never fire.
+    // The watchlist rather than a free-text box: a typo'd symbol would
+    // validate fine and then never fire.
     supabase
       .from("watchlist_items")
       .select("ticker, company_name")
@@ -115,9 +99,8 @@ export default async function AlertsPage() {
   }));
   const waiting = rows.filter((r) => !r.triggered_at);
   const sent = rows.filter((r) => r.triggered_at);
-  // Section headings distinguish two groups. With only one group there is
-  // nothing to distinguish, and "Watching" then merely repeats the count
-  // already in the subhead.
+  // With only one group there is nothing to distinguish, and the heading would
+  // just repeat the count in the subhead.
   const bothGroups = waiting.length > 0 && sent.length > 0;
 
   return (
@@ -147,9 +130,8 @@ export default async function AlertsPage() {
             {rows.length === 0 ? (
               <EmptyState
                 title="No alerts set"
-                // The copy has to match what is actually on screen. With a
-                // watchlist the form is right above this, so pointing at a
-                // company page would be describing a different product.
+                // With a watchlist the form is right above this, so pointing
+                // elsewhere would describe a different product.
                 body={
                   choices.length > 0
                     ? "Pick a company above and set a price. We'll email you when it crosses, whether or not you have this open."

@@ -1,11 +1,7 @@
 /**
- * Error classification and failure copy.
- *
- * The classifier is the whole reason nothing downstream ever sees a vendor
- * status code, and it is exactly the kind of mapping that rots quietly: a
- * provider changes a code, the branch stops matching, and every failure
- * silently becomes "unavailable" — which reads as our outage rather than a
- * rate limit that will clear on its own.
+ * Error classification and failure copy. This mapping rots quietly: a provider
+ * changes a code, the branch stops matching, and every failure becomes
+ * "unavailable" — which reads as our outage rather than a passing rate limit.
  *
  * Run: node --test tests/market-data.test.ts
  */
@@ -21,9 +17,8 @@ import {
 } from "../src/lib/market-data/types.ts";
 
 describe("Twelve Data in-body errors", () => {
-  // Twelve Data answers HTTP 200 with an error object rather than using status
-  // codes for its own failures. A naive res.ok check reads a rate limit as
-  // success and produces undefined prices downstream.
+  // Twelve Data answers 200 with an error object, so a naive res.ok check reads
+  // a rate limit as success.
   test("429 in a 200 body is a rate limit", () => {
     assert.equal(twelveDataError({ status: "error", code: 429 }), "rate_limited");
   });
@@ -32,10 +27,8 @@ describe("Twelve Data in-body errors", () => {
     assert.equal(twelveDataError({ status: "error", code: 403 }), "not_entitled");
   });
 
-  // The distinction this pair protects is the one that actually misled a
-  // reader: with 401 folded into not_entitled, a deployment that had simply
-  // never been given TWELVE_DATA_API_KEY told every visitor the chart sat
-  // behind a paid plan. 401 is our configuration, 403 is the plan.
+  // 401 is our configuration, 403 is the plan. Folding them together told
+  // visitors a missing key was a paid-plan limit.
   test("401 is misconfigured, not not_entitled", () => {
     assert.equal(twelveDataError({ status: "error", code: 401 }), "misconfigured");
   });

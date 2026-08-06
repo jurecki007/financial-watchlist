@@ -17,26 +17,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  // Every page sets its own relative `alternates.canonical`; this is what makes
-  // those resolve to absolute production URLs. Without it Next.js emits nothing
-  // absolute and canonical tags cannot be expressed at all.
-  //
-  // Note this is NOT given an `alternates.canonical` of its own: metadata is
-  // inherited, so a canonical here would make every page in the tree claim to be
-  // the homepage.
+  // Resolves each page's relative `alternates.canonical` to an absolute URL.
+  // Deliberately has no canonical of its own: metadata is inherited, so one
+  // here would make every page claim to be the homepage.
   metadataBase: SITE_URL,
   title: "Financial Watchlist",
   description:
     "Track companies, watch prices and charts, read the news that moves them.",
-  // The icon lives in `public/`, not at `app/favicon.ico`, so it has to be
-  // declared: Next emits <link rel="icon"> only for the app-router file
-  // convention, and a file in `public/` is served but never announced.
-  //
-  // Both locations at once is the trap. `public/` wins the URL while the app
-  // file still generates the tag, so the markup describes one file and the
-  // server sends another — verified by serving a marker from `public/` and
-  // watching it come back under the app file's declared type and sizes. One
-  // location, one source of truth.
+  // The icon lives in `public/`, which Next serves but never announces, so the
+  // tag is declared here. Never both locations: `public/` wins the URL while
+  // the app-router file still emits the tag, so the markup would describe one
+  // file and the server send another.
   icons: { icon: "/favicon.ico" },
 };
 
@@ -46,16 +37,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // The font variables belong on <html>, not <body>.
-    //
-    // `@theme` in globals.css declares `--font-sans: var(--font-geist-sans)`,
-    // and a custom property's var() references resolve where that property is
-    // computed — at `:root`. With the next/font classes on <body>,
-    // `--font-geist-sans` did not exist at `:root`, so `--font-sans` computed
-    // to guaranteed-invalid, `font-family: var(--font-sans), …` was dropped
-    // whole, and every sans surface on the site fell through to Tailwind's
-    // preflight system stack. Geist was downloaded on every page load and
-    // applied to nothing.
+    // Font variables belong on <html>, not <body>: `@theme` resolves
+    // `--font-sans` at `:root`, so with the next/font classes on <body> it
+    // computed to invalid and every sans surface fell back to the system stack.
     <html
       lang="en"
       data-theme="dark"

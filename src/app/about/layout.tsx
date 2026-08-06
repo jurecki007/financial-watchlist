@@ -5,21 +5,12 @@ import { Container } from "@/components/ui/shell";
 import { AboutTabs } from "@/components/about/about-tabs";
 
 /**
- * The About section and its own two-tab bar.
+ * The About section and its own tab bar — a second bar rather than two more
+ * primary-nav entries, which would have meant hiding half of them on a phone.
  *
- * A second bar rather than two more entries in the primary nav. The primary
- * nav already carries four destinations plus a wordmark, theme toggle, account
- * mark and sign-out, and it already drops Roadmap below `sm` to fit; six would
- * have meant hiding half of them on a phone. These two pages are also a pair —
- * a recruiter reading one wants the other — and pairs belong next to each other
- * rather than scattered across the top level.
- *
- * The tabs are a client component, and that is not an oversight. A layout does
- * not re-render when navigating between the routes that share it, so anything
- * here that derives from the current path is frozen at whatever it was when the
- * section mounted. `Nav` gets away with reading the path from headers because
- * every route under /about lights the same "About" entry; the tab bar does not,
- * so it reads the path reactively instead. See components/about/about-tabs.
+ * The tabs are a client component deliberately: a layout does not re-render
+ * between the routes that share it, so a path read here would freeze. `Nav`
+ * gets away with it because every /about route lights the same entry.
  */
 export default function AboutLayout({ children }: { children: ReactNode }) {
   return (

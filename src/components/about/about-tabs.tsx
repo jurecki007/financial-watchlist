@@ -5,21 +5,12 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * The About section's tab bar.
+ * The About section's tab bar. A client component because a layout does not
+ * re-render when navigating between the routes that share it, so a path read
+ * from headers would freeze at whatever it was when the section mounted.
  *
- * A client component for one specific reason: it lives in a layout, and an
- * App Router layout does NOT re-render when you navigate between routes that
- * share it. Reading the path from the `x-pathname` header — which is how the
- * primary nav does it, correctly, because that nav is rendered per page — meant
- * this bar captured the path once when the section mounted and then never
- * updated. Clicking between the two tabs left the marker on whichever one had
- * been loaded first, and a hard reload always looked right, which is exactly
- * the shape of bug that survives manual testing.
- *
- * The marker is ONE element for the whole bar rather than one per tab, which is
- * what lets it travel. Two markers cross-fading is a different gesture: it says
- * "this turned off, that turned on". One that moves says the selection itself
- * moved, which is what actually happened.
+ * One marker for the whole bar rather than one per tab, which is what lets it
+ * travel — two cross-fading markers say something turned off and another on.
  */
 
 const TABS = [
@@ -60,9 +51,8 @@ export function AboutTabs() {
   }, []);
 
   useEffect(() => {
-    // The marker is sized from rendered text, so anything that changes text
-    // metrics has to re-measure or it ends up the wrong width. A web font
-    // swapping in after first paint is the one that actually bites.
+    // Sized from rendered text, so a font swapping in after first paint has to
+    // trigger a re-measure.
     const ro = new ResizeObserver(measure);
     if (navRef.current) ro.observe(navRef.current);
     window.addEventListener("resize", measure);
@@ -84,10 +74,8 @@ export function AboutTabs() {
             ref={(el) => {
               items.current[t.href] = el;
             }}
-            // Not decoration: without it the active tab is signalled by colour
-            // alone, which is the one thing a screen reader cannot see. It was
-            // also the part that was actively wrong — pointing at the tab you
-            // had left rather than the one you were on.
+            // Without it the active tab is signalled by colour alone, which a
+            // screen reader cannot see.
             aria-current={current ? "page" : undefined}
             className={`relative py-3.5 text-sm transition-colors ${
               current

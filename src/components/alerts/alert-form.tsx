@@ -6,24 +6,17 @@ import { createAlert, type AlertState } from "@/app/company/[ticker]/alert-actio
 export type TickerChoice = { ticker: string; companyName?: string | null };
 
 /**
- * The one place an alert gets created.
+ * The one place an alert gets created — /alerts and the company page differ
+ * only in whether the ticker is already known, and two copies would drift.
  *
- * Shared because /alerts and a company page ask the same question with one
- * difference: the company page already knows the ticker, /alerts has to ask.
- * Two copies of a form that writes to the same table drift, and the half that
- * drifts is always the validation.
- *
- * The threshold input is `inputMode="decimal"` rather than `type="number"`:
- * number inputs silently discard values on locales that use a comma decimal
- * separator, and a price quietly becoming a different price is a uniquely bad
- * failure for this feature. Parsing happens server-side.
+ * `inputMode="decimal"` rather than `type="number"`: number inputs silently
+ * discard values on comma-decimal locales, and a price quietly becoming a
+ * different price is a uniquely bad failure here.
  */
 
 /**
- * Shared control chrome. `appearance-none` is the load-bearing part on the
- * <select>: left on `auto` the browser draws its own arrow in a system colour
- * we do not control, which on the dark theme was a grey-on-grey wedge sitting
- * inside an otherwise styled control.
+ * Shared control chrome. `appearance-none` matters on the <select>: otherwise
+ * the browser draws its own arrow in a system colour, grey-on-grey when dark.
  */
 const FIELD =
   "h-11 w-full border border-[var(--field-border)] bg-[var(--raised)] px-3 text-sm " +
@@ -80,9 +73,8 @@ export function AlertForm({
     <div>
       <form
         action={formAction}
-        // `items-end` aligns the controls along their bottom edge so the labels
-        // sit on one line and the fields on another, rather than stair-stepping
-        // when one label wraps.
+        // Aligns the controls along their bottom edge, so a wrapped label does
+        // not stair-step the fields.
         className="flex flex-wrap items-end gap-x-3 gap-y-4"
       >
         {ticker && <input type="hidden" name="ticker" value={ticker} />}
@@ -158,9 +150,8 @@ export function AlertForm({
         <p
           id={errorId}
           role="alert"
-          // A 1px rule, not a 2px colour bar. The thick coloured left border is
-          // the category's default alert costume and reads as decoration; the
-          // sign and the copy carry the meaning.
+          // A hairline, not a thick coloured bar — the sign and the copy carry
+          // the meaning.
           className="mt-3 border-l border-[var(--down)] bg-[var(--raised)] px-3 py-2 text-sm"
         >
           {state.error}

@@ -9,12 +9,9 @@ import {
 } from "../types.ts";
 
 /**
- * Finnhub — company news and fundamentals.
- *
- * Here because Twelve Data's free tier covers neither. Finnhub's own free tier
- * excludes historical candles (403), which is why Twelve Data keeps the chart:
- * the two plans are complementary, and between them nothing the product needs
- * sits behind a paywall.
+ * Finnhub — company news and fundamentals, which Twelve Data's free tier does
+ * not cover. Its own free tier excludes historical candles (403), which is why
+ * Twelve Data keeps the chart; between them nothing needed sits behind a wall.
  *
  * 60 calls/minute, US markets only.
  */
@@ -101,8 +98,7 @@ export async function getNews(
       publishedAt: new Date(a.datetime! * 1000).toISOString(),
     }));
 
-  // An empty news list is a legitimate answer, not a failure — plenty of
-  // companies have no coverage in a two-week window. The UI shows an empty
-  // state, which is a different thing from an error state.
+  // An empty news list is a legitimate answer: plenty of companies have no
+  // coverage in a two-week window. Empty state, not error state.
   return ok(articles);
 }

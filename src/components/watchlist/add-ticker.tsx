@@ -8,26 +8,16 @@ import { suggestionsFor } from "@/lib/popular-tickers";
 import { useWatchlist } from "@/components/watchlist/optimistic";
 
 /**
- * Ticker search and add.
+ * Ticker search and add. Results already on screen stay while the next query
+ * resolves — blanking on every keystroke makes a fast connection strobe and a
+ * slow one look broken.
  *
- * Loading rule 8: results already on screen stay there while the next query
- * resolves. Blanking the panel on every keystroke is the most common
- * autocomplete mistake — it makes a fast connection feel like a strobe and a
- * slow one feel broken.
- *
- * Search is debounced at 250ms and every in-flight request is aborted when a
- * newer one starts, so a slow early response can never overwrite a fast later
- * one. That reordering bug is invisible on a fast connection and constant on a
- * slow one.
+ * Debounced at 250ms, and in-flight requests are aborted when a newer one
+ * starts, so a slow early response cannot overwrite a fast later one.
  */
 /**
- * Every panel that can appear under the field shares this. All of them are
- * absolutely positioned: anything in normal flow here changes the height of
- * the header and shoves the card grid down the page, which is what made
- * clicking the field feel like the layout exploding.
- *
- * The shadow is what makes it read as a layer over the page rather than a
- * block that grew out of the input.
+ * Shared by every panel under the field. Absolutely positioned — anything in
+ * normal flow changes the header height and shoves the grid down the page.
  */
 const PANEL =
   "absolute top-[calc(100%+0.5rem)] right-0 left-0 z-30 border border-[var(--rule-strong)] bg-[var(--raised)] shadow-xl shadow-black/50";
@@ -101,10 +91,8 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
   const abort = useRef<AbortController | null>(null);
   const { push } = useToast();
 
-  // Suggestions stand in for results only while the field is empty. Once two
-  // characters are typed the real search owns the panel — showing both would
-  // put two lists of companies on screen with no way to tell which responds
-  // to what was typed.
+  // Suggestions only while the field is empty; once typing starts the real
+  // search owns the panel, or there are two lists with no way to tell them apart.
   const suggestions = suggestionsFor(watched);
   const showSuggestions =
     focused && query.trim().length < 2 && suggestions.length > 0;
@@ -136,9 +124,8 @@ export function AddTicker({ watched = [] }: { watched?: string[] }) {
           signal: controller.signal,
         });
         if (!res.ok) {
-          // Results already on screen stay; the failure is transient, so it
-          // goes to a toast rather than replacing what the user is reading.
-          // Keyed by status so a burst of 429s is reported once.
+          // Transient, and results are still on screen, so a toast rather than
+          // an inline error. Keyed by status so a burst of 429s reports once.
           push({
             key: `search-${res.status}`,
             title:

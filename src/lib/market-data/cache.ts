@@ -4,14 +4,12 @@ import { normalizeTicker, ok, type Result } from "./types.ts";
 /**
  * Cache-first reads against quote_cache / news_cache.
  *
- * Uses the secret key, so it bypasses RLS. That is deliberate and is why those
- * tables have RLS enabled with zero policies: they are unreachable from the
- * browser entirely, and only this module touches them. A client able to read
- * quote_cache could enumerate every ticker the whole user base follows.
+ * Uses the secret key, which is why those tables have RLS enabled with zero
+ * policies: they are unreachable from the browser, and a client able to read
+ * quote_cache could enumerate every ticker the user base follows.
  *
- * The rule that matters: a failed refresh with a stale row in hand serves the
- * stale row. On an 8-request-per-minute budget this fires routinely, and a
- * price from four minutes ago is a far better answer than an error card.
+ * A failed refresh with a stale row in hand serves the stale row — on this
+ * budget that fires routinely, and a four-minute-old price beats an error card.
  */
 
 const TTL_MS = {
@@ -45,9 +43,8 @@ export async function readCache<T>(
   if (!db) return null;
   const { name, column } = TABLE[kind];
 
-  // select("*") rather than a template literal: supabase-js parses the column
-  // list at the type level and cannot resolve a dynamic one. Both cache tables
-  // are three columns wide, so there is nothing to gain from narrowing it.
+  // select("*") because supabase-js parses the column list at the type level
+  // and cannot resolve a dynamic one. Both tables are three columns wide.
   const { data, error } = await db
     .from(name)
     .select("*")
@@ -76,9 +73,8 @@ export async function writeCache<T>(
   if (!db) return;
   const { name, column } = TABLE[kind];
 
-  // Cache writes are best-effort. A failure here means the next request re-
-  // fetches — wasteful, but not a reason to fail a request that already has
-  // its data.
+  // Best-effort: a failure means the next request refetches, which is wasteful
+  // but not a reason to fail a request that already has its data.
   const { error } = await db.from(name).upsert(
     {
       ticker: normalizeTicker(ticker),

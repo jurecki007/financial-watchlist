@@ -7,17 +7,11 @@ import { normalizeTicker } from "@/lib/market-data";
 export type WatchlistState = { error?: string } | undefined;
 
 /**
- * Watchlist mutations.
+ * Watchlist mutations. Note the absent `where user_id = ...`: RLS enforces
+ * ownership, and an application-layer copy of that rule would only drift.
  *
- * Note what is absent: any `where user_id = ...` clause. RLS enforces
- * ownership at the database, so these run as the signed-in user and the
- * policies decide what they may touch. An application-layer filter here would
- * be a second, weaker copy of a rule that already exists — and the kind that
- * drifts out of agreement with the real one.
- *
- * user_id is still set explicitly on insert because the INSERT policy's
- * WITH CHECK compares against it: the row has to claim an owner for the
- * database to verify the claim.
+ * user_id is still set on insert, because WITH CHECK compares against it —
+ * the row has to claim an owner for the database to verify the claim.
  */
 
 export async function addTicker(
@@ -57,9 +51,8 @@ export async function removeTicker(formData: FormData): Promise<void> {
   if (!ticker) return;
 
   const supabase = await createClient();
-  // No ownership check here either. If this row belonged to someone else the
-  // DELETE policy would match zero rows and nothing would happen — which is
-  // exactly what the RLS suite asserts.
+  // No ownership check: a row belonging to someone else matches zero rows
+  // under the DELETE policy, which the RLS suite asserts.
   const { error } = await supabase
     .from("watchlist_items")
     .delete()
