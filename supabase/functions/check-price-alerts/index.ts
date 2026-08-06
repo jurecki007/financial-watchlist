@@ -53,31 +53,194 @@ function fired(a: Alert, price: number): boolean {
   return a.condition === "above" ? price >= a.threshold : price <= a.threshold;
 }
 
+/**
+ * Tickers arrive from `price_alerts`, where the only guards are upper-case and
+ * a 20-character cap. `<B>`, and `<IMG SRC=X ONERROR=…>` at 20 characters,
+ * both satisfy those — upper-casing does not disarm markup. This email is the
+ * one place a ticker is rendered as HTML, so the escape belongs here. Same
+ * reasoning as `serialiseJsonLd` on the web side: the values are trustworthy
+ * today, and the guard is for the edit that is not.
+ */
+const esc = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+// Equity prices are two-decimal. `threshold` is numeric(20,6) and arrives as
+// 180.5, which reads as a typo next to a price of 180.12 unless both are fixed
+// to the same width.
+const money = (n: number) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+
+// Shared with the auth templates in supabase/templates/. The duplication is
+// forced: those are Go templates read by GoTrue, this is a Deno string, and no
+// build step spans both. Keep the tokens in step by hand — they are the
+// design-system values from globals.css.
+const GROUND = "#08090b";
+const RAISED = "#101216";
+const RULE = "#23262b";
+const FG = "#ecedef";
+const DIM = "#9a9ca1";
+// globals.css spends --faint #6b6e74 on this role, and it measures 3.90:1 on
+// the ground and 3.67:1 on the raised panel — under the 4.5:1 floor for body
+// text. The app gets away with it because every --faint string is repeated in
+// a louder form nearby, and because the reader can switch themes. An email has
+// neither escape hatch, so the tone is lifted to the nearest value that clears
+// AA against both surfaces (5.03:1 and 4.74:1) while staying visually quiet.
+const MUTED = "#7d8086";
+const GOLD = "#d9a441";
+const SANS =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const MONO =
+  "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
+
 function email(a: Alert, price: number) {
-  const dir = a.condition === "above" ? "risen above" : "fallen below";
+  const up = a.condition === "above";
+  const dir = up ? "risen above" : "fallen below";
+
+  // Colour carries the direction, but never alone — the arrow and the word
+  // survive a colourblind reader and a client that strips colour. Same rule as
+  // the deltas on the dashboard.
+  const tone = up ? "#2dd4bf" : "#f87171";
+  const arrow = up ? "&#9650;" : "&#9660;";
+  const arrowText = up ? "^" : "v";
+
+  const ticker = esc(a.ticker);
+  const last = money(price);
+  const level = money(a.threshold);
+  const href = `${APP_URL}/company/${encodeURIComponent(a.ticker)}`;
+  const subject = `${a.ticker} has ${dir} ${level}`;
+
   return {
-    subject: `${a.ticker} has ${dir} ${a.threshold}`,
-    html: `
-<div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:520px">
-  <p style="font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#6b6e74;margin:0 0 18px">
-    Financial Watchlist
-  </p>
-  <h1 style="font-size:20px;font-weight:600;margin:0 0 12px;color:#111">
-    ${a.ticker} has ${dir} ${a.threshold}
-  </h1>
-  <p style="font-size:15px;line-height:1.6;color:#444;margin:0 0 20px">
-    It last traded at <strong>${price}</strong>. You asked to be told when it
-    went ${a.condition} ${a.threshold}.
-  </p>
-  <a href="${APP_URL}/company/${encodeURIComponent(a.ticker)}"
-     style="display:inline-block;background:#d9a441;color:#08090b;text-decoration:none;padding:10px 18px;font-size:14px;font-weight:500">
-    View ${a.ticker}
-  </a>
-  <p style="font-size:12px;color:#8a8d93;margin:24px 0 0;line-height:1.6">
-    This alert has now been used up and will not send again. Set a new one from
-    the company page.
-  </p>
-</div>`.trim(),
+    subject,
+    // A text/plain part is not a courtesy. Without one the message is a
+    // single-part text/html mail, which every spam filter scores against, and
+    // which reads as blank on a watch or a screen reader in plain-text mode.
+    text: [
+      `${a.ticker} has ${dir} ${level}`,
+      ``,
+      `Last traded   ${arrowText} ${last}`,
+      `Your alert    ${a.condition} ${level}`,
+      ``,
+      `View ${a.ticker}: ${href}`,
+      ``,
+      `This alert has now been used up and will not send again.`,
+      `Set a new one from the company page.`,
+    ].join("\n"),
+    html: `<!doctype html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>${esc(subject)}</title>
+<!--[if mso]>
+<noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+<![endif]-->
+<style>
+  :root { color-scheme: dark; supported-color-schemes: dark; }
+  body { margin:0 !important; padding:0 !important; width:100% !important; }
+  a { text-decoration: none; }
+  @media only screen and (max-width:600px) {
+    .sm-px { padding-left:22px !important; padding-right:22px !important; }
+    .sm-full { width:100% !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;width:100%;background-color:${GROUND};">
+
+<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+  Last traded at ${last}. This alert has been used up and will not send again.
+  &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="${GROUND}" style="background-color:${GROUND};">
+  <tr>
+    <td align="center" style="padding:40px 12px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" class="sm-full" style="width:560px;max-width:560px;">
+
+        <tr>
+          <td class="sm-px" style="padding:0 0 22px 0;font-family:${MONO};font-size:11px;line-height:16px;letter-spacing:0.18em;text-transform:uppercase;color:${MUTED};">
+            Financial Watchlist
+          </td>
+        </tr>
+
+        <tr>
+          <td bgcolor="${RAISED}" style="background-color:${RAISED};border:1px solid ${RULE};">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td class="sm-px" style="padding:34px 38px 32px 38px;">
+
+                  <p style="margin:0 0 16px 0;font-family:${MONO};font-size:11px;line-height:16px;letter-spacing:0.16em;text-transform:uppercase;color:${GOLD};">
+                    Price alert
+                  </p>
+
+                  <h1 style="margin:0 0 24px 0;font-family:${SANS};font-size:23px;line-height:31px;font-weight:600;letter-spacing:-0.02em;color:${FG};">
+                    ${ticker} has ${dir} ${level}
+                  </h1>
+
+                  <!-- Readout. Labels left, figures right in the mono face so
+                       the two numbers line up on the decimal. -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="${GROUND}" style="background-color:${GROUND};border:1px solid ${RULE};">
+                    <tr>
+                      <td style="padding:16px 20px 6px 20px;font-family:${MONO};font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:${MUTED};">
+                        Last traded
+                      </td>
+                      <td align="right" style="padding:16px 20px 6px 20px;font-family:${MONO};font-size:24px;line-height:30px;font-weight:600;color:${tone};white-space:nowrap;">
+                        <span style="font-size:16px;">${arrow}</span>&nbsp;${last}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding:0 20px 16px 20px;font-family:${MONO};font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:${MUTED};">
+                        Your alert
+                      </td>
+                      <td align="right" style="padding:0 20px 16px 20px;font-family:${MONO};font-size:13px;line-height:20px;color:${DIM};white-space:nowrap;">
+                        ${a.condition}&nbsp;${level}
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div style="height:26px;line-height:26px;font-size:0;">&nbsp;</div>
+
+                  <!--[if mso]>
+                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${href}" style="height:46px;v-text-anchor:middle;width:190px;" arcsize="0%" stroke="f" fillcolor="${GOLD}">
+                    <w:anchorlock/>
+                    <center style="color:${GROUND};font-family:Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;">View ${ticker}</center>
+                  </v:roundrect>
+                  <![endif]-->
+                  <!--[if !mso]><!-- -->
+                  <a href="${href}" style="display:inline-block;background-color:${GOLD};color:${GROUND};font-family:${SANS};font-size:15px;font-weight:600;line-height:20px;padding:13px 26px;text-decoration:none;">
+                    View ${ticker}
+                  </a>
+                  <!--<![endif]-->
+
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="sm-px" style="padding:22px 2px 0 2px;font-family:${SANS};font-size:12px;line-height:20px;color:${MUTED};">
+            This alert has been used up and will not send again. Set a new one
+            from the company page.
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>`.trim(),
   };
 }
 
@@ -166,14 +329,17 @@ Deno.serve(async (req) => {
       const to = authUser?.email;
       if (!to) continue;
 
-      const { subject, html } = email(alert, price);
+      const { subject, html, text } = email(alert, price);
       const send = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ from: FROM, to, subject, html }),
+        // `text` alongside `html` makes this multipart/alternative. Sending
+        // html on its own is a measurable spam signal and leaves plain-text
+        // readers with an empty message.
+        body: JSON.stringify({ from: FROM, to, subject, html, text }),
       });
 
       if (!send.ok) {

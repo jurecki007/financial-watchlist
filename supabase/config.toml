@@ -240,10 +240,31 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# ---------------------------------------------------------------------------
+# Email templates.
+#
+# These bind the files in supabase/templates/ to the LOCAL stack, which is what
+# makes them testable with Inbucket (http://127.0.0.1:54424) before they go
+# anywhere near a real inbox.
+#
+# The DEPLOYED project does not read them. Its templates live in the dashboard
+# under Authentication -> Emails, and the same site_url hazard documented at the
+# top of this file applies: `supabase config push` would carry these blocks up
+# but also push site_url = 127.0.0.1 and a Google-provider block that does not
+# exist here. So the deploy step is a paste, not a push — see README.
+#
+# Only the two templates the app can actually send are wired. `invite`,
+# `magic_link`, `email_change` and `reauthentication` are left on Supabase's
+# defaults because no flow in this app triggers them; a branded template for an
+# unreachable email is a claim the product does not honour.
+# ---------------------------------------------------------------------------
+[auth.email.template.confirmation]
+subject = "Confirm your email"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password"
+content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

@@ -110,6 +110,9 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 - [x] Alerts can be created from `/alerts` — the page whose subject is alerts was read-only and sent you elsewhere to make one. Form shared with the company page rather than copied
 - [x] `/about/project` and `/about/author` — stack, providers, failure taxonomy, data model and release process for a reader evaluating the work; two-tab section with a marker that travels
 - [x] Auth pages carry the nav and footer — nav revealed on scroll, and on focus so it is not a keyboard trap
+- [x] Transactional emails designed — alert, signup confirmation and password reset share one dark shell built to email's constraints (tables, inline styles, VML buttons, declared colour scheme, preheader). Alerts gained a `text/plain` part, and muted tones were lifted above `--faint`, which measured 3.90:1 and failed AA in a medium with no theme toggle
+- [x] Ticker escaped before it reaches email HTML — `price_alerts` only enforces upper-case and a length cap, both of which `<B>` satisfies; the raw value was reaching the markup, and the `<title>` leak survived the first fix until a hostile-input render caught it
+- [x] Reviewer demo account — created pre-confirmed through the Admin API and seeded with six companies and two alerts, because a reviewer who signs up normally waits on a confirmation email and then lands on the empty state instead of the product. `npm run seed:demo` restores it, which is what makes publishing the password affordable
 
 **At the end of Phase 6 the product is fully demoable.** Everything below is upside, not requirement.
 
@@ -123,7 +126,7 @@ market-native dark, self-drawing gold candlestick hero. See "Design Direction" i
 | 2 | ~~RLS tests proving cross-user isolation — 12 shipped in Phase 2~~ | Low | High — rarely done, strong signal |
 | 3 | ~~Search debounce + polished autocomplete UX~~ **shipped in Phase 5** | Low | Medium |
 | 4 | ~~Optimistic UI on watchlist add/remove~~ **shipped** | Low | Medium |
-| 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) — *deferred* | Medium | Medium |
+| 5 | Weekly digest email (cron + Resend, summarizing watchlist movers) — *deferred (ran out of time)* | Medium | Medium |
 | 6 | ~~Sentiment tag on news headlines~~ **shipped** | Medium | Medium |
 | 7 | ~~E2E test (Playwright) for signup → add ticker → view dashboard~~ **shipped — 6 tests** | Medium | High |
 
