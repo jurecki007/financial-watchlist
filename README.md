@@ -618,8 +618,42 @@ leaves the URL reachable by anyone who finds it. Without the check, a stranger
 could hammer it and spend the daily Twelve Data budget. Verified: 403 without
 the header, 403 with a wrong one.
 
-Scheduling is set up in the Supabase dashboard rather than committed, because a
-cron job that calls this function has to carry the secret.
+**Alerts are evaluated hourly, and again the moment one is created.** The
+schedule is a `pg_cron` job committed as a migration
+(`20260806073000_schedule_price_alert_checks.sql`), not dashboard state.
+
+Hourly is a budget decision. The sweep costs *one* Twelve Data request no matter
+how many alerts exist, because every distinct ticker goes into a single
+comma-separated `/quote` call — so 24 credits a day, about 3% of the free tier,
+leaves the rest for the dashboard.
+
+That interval alone would make `alert me when AAPL is above $1` look broken for
+up to an hour, so `createAlert` also asks the evaluator to look at that one
+ticker immediately. That call is best-effort by design: the alert is already
+committed before it runs, it is bounded to four seconds so a slow provider
+cannot hold the user's form submit open, and every failure path logs and
+returns. If it does not happen, the sweep still catches it.
+
+Running both means two evaluations can now be in flight against the same row,
+so the claim is a compare-and-set rather than a blind write — the
+`triggered_at is null` test moved into the UPDATE's own WHERE clause, and only
+the caller whose update returns a row sends. Verified by firing three
+concurrent claims at one alert and confirming exactly one won.
+
+The endpoint and the shared secret come from Vault, not the migration — the
+function is deployed `--no-verify-jwt`, so committing the secret would publish
+the key to the lock. Set them once per project:
+
+```sql
+select vault.create_secret(
+  'https://<project-ref>.supabase.co/functions/v1/check-price-alerts',
+  'alerts_endpoint');
+select vault.create_secret('<the CRON_SECRET value>', 'cron_secret');
+```
+
+A missing Vault row raises rather than posting to a null URL, so a
+misconfigured job shows up in `cron.job_run_details` instead of looking
+identical to "nothing crossed".
 
 ## Emails
 
