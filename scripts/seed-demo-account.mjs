@@ -33,7 +33,14 @@ import { createClient } from "@supabase/supabase-js";
 
 // --- Configuration --------------------------------------------------------
 
-const EMAIL = process.env.DEMO_EMAIL ?? "reviewer@fakturownia.pl";
+// example.com, and not a real company's domain, on purpose. RFC 2606 reserves
+// it precisely so it can be used in documentation without ever resolving, which
+// means no mail this account provokes can reach a person who did not ask for
+// it. The previous default was a live domain we did not own — a published
+// password on an address at somebody else's company is an invitation to send
+// them automated mail, and every send would have been a bounce charged against
+// our own sending reputation.
+const EMAIL = process.env.DEMO_EMAIL ?? "fakturownia@example.com";
 const PASSWORD = process.env.DEMO_PASSWORD ?? "ReviewMe2026!";
 const DISPLAY_NAME = process.env.DEMO_DISPLAY_NAME ?? "Reviewer";
 
@@ -56,10 +63,14 @@ const WATCHLIST = [
 // The evaluator scans `where active and triggered_at is null`, so the fired row
 // is invisible to it by construction, and the pending row's threshold is far
 // enough below any plausible price that it will not cross during a review.
-// Both of those are load-bearing: `check-price-alerts` mails the account's own
-// address, and this account's address is at a domain we do not control, so a
-// fired alert would put automated mail on a real company's mail server and earn
-// a bounce against the Resend sending domain. Seeded alerts must not fire.
+//
+// Both of those still matter now the address is a reserved one. `example.com`
+// means a fired alert can no longer reach a person, but it cannot be delivered
+// either: `check-price-alerts` mails the account's own address, so every send
+// would fail and count as a bounce against the Resend sending domain. The
+// account is a display of the product, not a demonstration of mail delivery —
+// what it should show a reviewer is both alert states rendered, which is what
+// the fired row does without a send. Seeded alerts must not fire.
 const ALERTS = [
   {
     ticker: "AAPL",
