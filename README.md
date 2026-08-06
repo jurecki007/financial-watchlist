@@ -63,6 +63,7 @@ check the runtime log for `[market-data] … is not set`.
 | `npm run lint` | eslint |
 | `npm run security` | env-exposure guard (same check CI runs) |
 | `npm run seed:demo` | create or restore the reviewer demo account (needs `SUPABASE_SECRET_KEY`) |
+| `npm run mockups` | render every email into `mockups/emails/` (no network, sends nothing) |
 | `npm run test:rls` | cross-user RLS isolation suite (needs `supabase start`) |
 | `npm run test:e2e` | Playwright journey against the production bundle |
 | `npm run test:routes` | auth-gate coverage (no server needed) |
@@ -655,6 +656,19 @@ colour does not exist in plain text.
 constrains a ticker to upper-case and 20 characters, and `<B>` satisfies both —
 upper-casing does not disarm markup. Verified by rendering `<B>PWN</B>`,
 `"><IMG SRC=X>` and `O'BRIEN&CO` and asserting none survive as markup.
+
+### Seeing them without sending them
+
+`npm run mockups` renders all four into [`mockups/emails/`](mockups/emails/) —
+both alert directions, both auth templates, plus the alert's `text/plain`
+alternative. They are generated from the real sources on every run, never
+hand-maintained, because a mockup that has quietly stopped matching the email
+is worse than no mockup: it is the artefact people trust when deciding whether
+the real thing looks right.
+
+A browser is not an email client, though. The mockups settle copy, hierarchy
+and contrast; they cannot tell you how Word treats the VML button or what Gmail
+does after stripping `<style>`.
 
 ### Deploying the auth templates
 
