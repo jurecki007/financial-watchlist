@@ -2,14 +2,8 @@ import Link from "next/link";
 import { Container } from "@/components/ui/shell";
 
 /**
- * Shared footer.
- *
- * The landing page had one and every signed-in page had none, so the app
- * simply stopped at the last card with no edge — which reads as an unfinished
- * page rather than a deliberate end.
- *
- * Kept to what is true: the stack, the source, the roadmap. No invented links
- * to a privacy policy or support desk that do not exist.
+ * Shared footer. Kept to what is true — the stack, the source, the roadmap —
+ * with no invented links to a privacy policy or support desk that do not exist.
  */
 export function Footer() {
   return (

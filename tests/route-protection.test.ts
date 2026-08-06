@@ -1,10 +1,7 @@
 /**
- * Which paths the auth gate covers.
- *
- * The redirect behaviour itself is verified against a running server; this
- * suite guards the part that silently rots — the prefix list. The failure mode
- * is not a broken redirect, it is a new route nobody added to PROTECTED, which
- * looks exactly like working software until someone reads another user's data.
+ * Which paths the auth gate covers. The redirect itself is verified against a
+ * running server; this guards the prefix list, whose failure mode is a new
+ * route nobody added — which looks like working software.
  *
  * Run: node --test tests/route-protection.test.ts
  */
@@ -35,9 +32,7 @@ describe("auth gate coverage", () => {
   }
 
   test("does not gate paths that merely start with the same letters", () => {
-    // /dashboards-public must not inherit /dashboard's protection by accident,
-    // and more importantly the reverse: a prefix match written as a bare
-    // startsWith would gate it silently and nobody would notice.
+    // A bare startsWith would gate /dashboards-public silently.
     assert.equal(isProtected("/dashboardish"), false);
     assert.equal(isProtected("/settingsomething"), false);
   });

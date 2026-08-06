@@ -1,11 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
- * Supabase client for client components.
- *
- * Only ever holds the publishable key, which is designed to reach the browser.
- * Everything it can do, a user can do — RLS is the enforcement boundary, not
- * this module. See supabase/migrations for the policies that do the work.
+ * Supabase client for client components. Only ever the publishable key: RLS is
+ * the enforcement boundary, not this module.
  */
 export function createClient() {
   return createBrowserClient(

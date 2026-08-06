@@ -6,12 +6,8 @@ import { useWatchlist } from "@/components/watchlist/optimistic";
 import type { Quote } from "@/lib/market-data";
 
 /**
- * The card grid, rendered from optimistic state.
- *
- * Quotes still come from the server; only membership is optimistic. A card
- * added a moment ago has no price yet and says so, rather than inventing a
- * number — guessing a price in a product about prices is the one lie this UI
- * must never tell.
+ * The card grid, from optimistic state. Only membership is optimistic — a card
+ * added a moment ago has no price yet and says so rather than inventing one.
  */
 export function WatchlistGrid({
   quotes,

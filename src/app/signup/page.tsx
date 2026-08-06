@@ -22,11 +22,8 @@ export default async function SignUpPage({
   return (
     <AuthShell
       title="Create account"
-      // Was the landing page's value proposition repeated almost verbatim.
-      // By this screen the visitor has already decided; what they do not know
-      // is that the account is not usable until an email is confirmed, and
-      // finding that out only after submitting is the moment a signup feels
-      // broken. Say it before they commit, not on the page they land on next.
+      // The visitor has already decided by this screen; what they do not know
+      // is that the account waits on a confirmation email.
       lede="One email confirms your address, then your watchlist is ready."
       footer={
         <>

@@ -4,17 +4,12 @@ import { AuthForm } from "@/components/auth/auth-form";
 import { signIn, signInWithGoogle } from "@/app/auth/actions";
 import { AuthShell, Notice } from "@/components/auth/auth-shell";
 
-// The canonical is param-free on purpose. The auth gate redirects here as
-// /login?next=%2Fdashboard, /login?next=%2Fnews and so on, so this page has as
-// many URL variants as there are protected routes; they are all the same page.
+// Canonical is param-free: the gate redirects here as /login?next=… from every
+// protected route, and those are all one page. `follow` stays on so the crawl
+// passes through rather than dead-ending on the site's most-linked URL.
 export const metadata: Metadata = {
   title: "Sign in — Financial Watchlist",
   alternates: { canonical: "/login" },
-  // A sign-in form is 29 words of interface with nothing to answer a search
-  // with. `follow` stays on so the crawl continues through to /roadmap and the
-  // landing page rather than dead-ending here — this is the page the auth gate
-  // redirects every protected route to, so it is the most-linked URL on the
-  // site and the worst one to make a trap.
   robots: { index: false, follow: true },
 };
 
