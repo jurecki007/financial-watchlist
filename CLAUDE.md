@@ -154,6 +154,30 @@ unticked box next to working code reads as abandoned, and a ticked box next to n
 reads as dishonest. Neither is recoverable by a later cleanup commit, because the history
 is visible.
 
+**CI runs on a self-hosted runner, and that changes what a workflow may contain.**
+The four Security jobs run on a local box (label `wyse`) for everything except
+pull requests from forks, which are routed to `ubuntu-latest` by the `runs-on`
+expression in `security.yml`. Rules that follow, and they are not negotiable
+while this repo is public:
+
+- **Never add a job `container:`, and never mount `/var/run/docker.sock`.** On a
+  self-hosted runner a job container is created through the host's Docker socket,
+  and that socket is root on the host — `docker run -v /:/host` is the whole
+  exploit. Tools get installed into the job instead: see the semgrep step, which
+  builds a venv and pins `semgrep==1.172.0`. A pinned PyPI version is as
+  immutable as an image digest, because PyPI will not re-upload different content
+  under an existing version.
+- **Do not simplify the `runs-on` expression to a plain label.** It looks like
+  four lines of duplication and it is the thing keeping untrusted fork code off
+  hardware that holds unrelated production credentials.
+- **Keep every job's `timeout-minutes` set.** One runner serves this whole repo,
+  so a wedged job blocks everything queued behind it; GitHub's 360-minute default
+  is not a safe fallback here.
+- **Anything added to the toolchain must install on both runners.** The
+  self-hosted image is plain `ubuntu:24.04`; GitHub's image is not. Neither
+  allows `pip install` into the system Python (PEP 668), which is why the
+  semgrep step uses a venv rather than `pip install --user`.
+
 **Verify security controls empirically.** Reading a guard proves nothing. Give it something
 it should catch and confirm it catches it — that method found three fail-open defects in
 these very scripts that eye review had missed.

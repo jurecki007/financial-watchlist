@@ -374,6 +374,37 @@ the layers that matter most are the ones that run *before* the push.
 `main` is protected — all four checks must pass, changes land via PR, linear history, and
 the rules apply to admins too.
 
+### Where those checks run
+
+The four Security jobs run on a **self-hosted runner** on a local box, not on
+GitHub's runners. `runs-on` is an expression rather than a label, and the split is
+the point:
+
+| Trigger | Runner |
+|---|---|
+| pull request **from a fork** | `ubuntu-latest` (GitHub-hosted, disposable) |
+| everything else — push, same-repo PR, cron, dispatch | `wyse` (self-hosted) |
+
+A self-hosted runner executes whatever the workflow file says, on hardware that
+persists between jobs and hosts unrelated services with their own credentials on
+disk. Anyone can open a pull request from a fork against a public repo, so fork
+PRs are kept on throwaway infrastructure that is destroyed either way. The
+repository additionally requires manual approval before **any** outside
+contributor's workflow runs, so an unapproved fork PR executes nothing at all —
+the expression is the second layer, for the day that checkbox gets changed.
+
+Two consequences worth knowing:
+
+- **`semgrep` is installed from a pinned wheel, not run as a job `container:`.**
+  A job container on a self-hosted runner is created through the host's Docker
+  socket, and access to that socket is root on the host. `semgrep==1.172.0`
+  is as immutable as the image digest it replaced — PyPI will not re-upload
+  different content under an existing version — which was the whole reason the
+  image had been pinned by digest rather than by tag.
+- **If that box is offline, checks stay pending and nothing merges.** There is no
+  failover. The recovery is to put `runs-on: ubuntu-latest` back temporarily and
+  push.
+
 Response headers set in [`next.config.ts`](next.config.ts): `X-Frame-Options`,
 `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`,
 `Strict-Transport-Security`. `Referrer-Policy` is the load-bearing one here — a full-URL

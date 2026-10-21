@@ -14,6 +14,17 @@ on:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
 
+# One runner serves this repo, so superseded runs are no longer merely wasteful
+# — they sit in a queue ahead of the run you actually care about. Cancel them.
+#
+# Keyed on the event as well as the ref, which the other repos do not need to
+# do: a push to the default branch shares a ref with the Monday 06:00 schedule,
+# so a ref-only group would let a routine push cancel the weekly full-history
+# sweep — the one run that exists to catch what was clean when it was written.
+concurrency:
+  group: security-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least privilege at the top: read-only for everything. The one job that needs
 # to write findings re-grants it for itself only, so a compromised action in the
 # other three jobs cannot publish to the security tab.
@@ -25,10 +36,39 @@ permissions:
 # code, and it runs here with our token. The trailing comment records which
 # release each SHA corresponds to, so Dependabot can still bump them.
 
+# RUNNERS. Every job below carries the same runs-on expression:
+#
+#   fork pull request -> ubuntu-latest      (GitHub-hosted, disposable)
+#   everything else   -> wyse               (self-hosted, ~/ci-runners)
+#
+# THIS REPOSITORY IS PUBLIC, and that is the whole reason for the split. A
+# self-hosted runner executes whatever the workflow says, on real hardware that
+# persists between jobs — and this particular machine also runs n8n, listmonk
+# and a Cloudflare tunnel, with their credentials on disk. Anyone can open a
+# pull request from a fork against a public repo. Sending those to a throwaway
+# GitHub runner means a hostile PR gets a container that is destroyed either
+# way, and never gets a shell next to the n8n database.
+#
+# This is defence in depth, not the only defence: the repository is also set to
+# require manual approval before ANY outside contributor's workflow runs
+# (Settings -> Actions -> "Require approval for all external contributors"),
+# so a fork PR does not execute at all until approved. The expression is here
+# because that setting is a checkbox someone can switch off by accident, and
+# because an approved-but-still-untrusted PR should not be on this hardware.
+#
+# The expression is spelled out per job rather than factored into one place:
+# GitHub Actions does not support YAML anchors, and the alternative — a tiny
+# job that outputs the label for the others to consume via `needs` — needs a
+# runner of its own to do it, which defeats the point.
+
 jobs:
   secrets:
     name: Secret scan (full history)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
+    # One self-hosted runner serves this whole repo, so a wedged job blocks
+    # everything queued behind it — GitHub's 360-minute default is no longer
+    # harmless. Generous for two 1.65 GHz cores, but finite.
+    timeout-minutes: 30  # full git history through gitleaks
     permissions:
       contents: read
       security-events: write
@@ -46,7 +86,11 @@ jobs:
 
   env-guard:
     name: Env var guard
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
+    # One self-hosted runner serves this whole repo, so a wedged job blocks
+    # everything queued behind it — GitHub's 360-minute default is no longer
+    # harmless. Generous for two 1.65 GHz cores, but finite.
+    timeout-minutes: 10  # one shell script over the tree
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: No real secrets in tracked files
@@ -54,13 +98,45 @@ jobs:
 
   sast:
     name: OWASP / static analysis
-    runs-on: ubuntu-latest
-    container:
-      # Pinned by digest for the same reason the actions are pinned by SHA:
-      # a floating tag is someone else's mutable pointer into our CI.
-      image: semgrep/semgrep@sha256:65dcd4408adda7c183a6b4550cb1e9b19f7f627a6fbb7e0559bd466bedc44d7b # 1.172.0
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
+    # One self-hosted runner serves this whole repo, so a wedged job blocks
+    # everything queued behind it — GitHub's 360-minute default is no longer
+    # harmless. Generous for two 1.65 GHz cores, but finite.
+    timeout-minutes: 45  # venv build + 4 rule packs, the slowest of the four
+    # NO `container:` ANY MORE, and it must not come back. A job container on a
+    # self-hosted runner is created by handing the runner the host's Docker
+    # socket, and access to that socket is root on the host — `docker run -v
+    # /:/host` is all it takes. On a public repo, on a machine that also holds
+    # the n8n credentials and the Cloudflare tunnel token, that is not a risk
+    # worth a convenience. The runner image therefore has no socket mounted,
+    # and semgrep is installed per job instead.
+    #
+    # Same tool, same version. The digest pin is replaced by `==1.172.0`, which
+    # is not a weakening: PyPI refuses to re-upload different content under an
+    # existing version, so a pinned version is as immutable as a digest. That
+    # is precisely the property the old `semgrep/semgrep:1.172.0` TAG lacked
+    # and the reason it was pinned by digest in the first place.
+    #
+    # The honest gap: semgrep's own transitive dependencies are not pinned
+    # here. Closing it properly means a hash-pinned requirements file for the
+    # whole tree, regenerated on every semgrep bump. If this repo ever holds
+    # anything that justifies that, `pip-compile --generate-hashes` is the tool.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # A venv, not `pip install --user` or a bare `pip install`: both Ubuntu
+      # 24.04 (the self-hosted image) and GitHub's runner mark the system
+      # Python as externally managed, and pip refuses to touch it (PEP 668).
+      # A venv needs nothing preinstalled and behaves identically on both.
+      - name: Install semgrep
+        run: |
+          set -euo pipefail
+          python3 -m venv /tmp/semgrep-venv
+          /tmp/semgrep-venv/bin/pip install --quiet --upgrade pip
+          /tmp/semgrep-venv/bin/pip install --quiet semgrep==1.172.0
+          echo "/tmp/semgrep-venv/bin" >> "$GITHUB_PATH"
+          /tmp/semgrep-venv/bin/semgrep --version
+
       - name: semgrep (OWASP Top 10 + JS/TS + secrets)
         run: |
           semgrep scan \
@@ -73,7 +149,11 @@ jobs:
 
   deps:
     name: Dependency audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
+    # One self-hosted runner serves this whole repo, so a wedged job blocks
+    # everything queued behind it — GitHub's 360-minute default is no longer
+    # harmless. Generous for two 1.65 GHz cores, but finite.
+    timeout-minutes: 20  # npm audit, network-bound
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Skip if no package.json yet
