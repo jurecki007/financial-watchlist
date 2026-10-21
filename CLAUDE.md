@@ -181,6 +181,22 @@ while this repo is public:
   allows `pip install` into the system Python (PEP 668), which is why the
   semgrep step uses a venv rather than `pip install --user`.
 
+**The `npm audit` gate is scoped to production dependencies, and that scoping is
+load-bearing — do not "tidy" it back into one blocking audit.** Five high
+advisories arrive via `eslint-config-next -> @next/eslint-plugin-next ->
+fast-glob -> micromatch -> braces`; `braces` has a vulnerable range of `*` with
+no patched version at all, and the plugin hard-pins `fast-glob: 3.3.1` in every
+release through 16.4.2. A single blocking full audit is therefore permanently
+red, and a gate that starts red is a gate everyone learns to ignore.
+
+- **Never take npm's suggested fix of `eslint-config-next@14.2.35`.** It is a
+  major downgrade onto a pre-advisory tree, on a Next 15 project where
+  `eslint-config-next` is pinned in lockstep with `next` on purpose.
+- **Keep `next` and `eslint-config-next` pinned to the same exact version.**
+  Both are exact, not caret, so a security bump is a deliberate edit to both.
+- The dev-dependency audit still runs and still reports; it just does not block.
+  Delete it and drop `--omit=dev` once `braces` is patched.
+
 **Verify security controls empirically.** Reading a guard proves nothing. Give it something
 it should catch and confirm it catches it — that method found three fail-open defects in
 these very scripts that eye review had missed.

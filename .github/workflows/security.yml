@@ -156,6 +156,42 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         with:
           node-version: 22
-      - name: npm audit
+      # Split into a blocking production audit and a non-blocking full one, and
+      # the split is a concession to a real dead end rather than a preference.
+      #
+      # Five high advisories live in the ESLint toolchain and cannot currently be
+      # fixed at any version: `braces` is flagged with a vulnerable range of `*`
+      # — every published version, latest included, with no patched release —
+      # and it reaches us as
+      #
+      #   eslint-config-next -> @next/eslint-plugin-next -> fast-glob
+      #     -> micromatch -> braces
+      #
+      # where `@next/eslint-plugin-next` hard-pins `fast-glob: 3.3.1` in every
+      # version from 14.x through 16.4.2. Upgrading cannot clear it. npm's own
+      # suggested fix is `eslint-config-next@14.2.35`, a MAJOR DOWNGRADE onto a
+      # tree that happens to predate the advisory — on a Next 15 project, with
+      # the version deliberately pinned in lockstep with `next`. That is not a
+      # fix, it is moving backwards to make a number go green.
+      #
+      # So the gate is scoped to what ships. `--omit=dev` covers the 32
+      # production dependencies — the code that actually serves requests, where
+      # the critical Next.js RCE and the sharp/libheif issues lived, and which
+      # is at zero. The remaining five are a CPU-denial-of-service in a glob
+      # matcher that runs over our own source on our own machines during lint.
+      # Worth knowing about; not worth blocking every PR on something no
+      # dependency change can resolve.
+      #
+      # The full audit still runs, still reports, and still shows up in the job
+      # log — it just does not block. When `braces` ships a patched version, or
+      # the plugin stops pinning `fast-glob`, delete the second step and put
+      # `--omit=dev` away: the goal is for one blocking full audit to be viable
+      # again, not for this split to be permanent.
+      - name: npm audit (production dependencies — blocking)
         if: steps.check.outputs.exists == 'true'
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: npm audit (including dev dependencies — informational)
+        if: ${{ always() && steps.check.outputs.exists == 'true' }}
+        continue-on-error: true
         run: npm audit --audit-level=high
