@@ -160,13 +160,16 @@ pull requests from forks, which are routed to `ubuntu-latest` by the `runs-on`
 expression in `security.yml`. Rules that follow, and they are not negotiable
 while this repo is public:
 
-- **Never add a job `container:`, and never mount `/var/run/docker.sock`.** On a
-  self-hosted runner a job container is created through the host's Docker socket,
-  and that socket is root on the host — `docker run -v /:/host` is the whole
-  exploit. Tools get installed into the job instead: see the semgrep step, which
-  builds a venv and pins `semgrep==1.172.0`. A pinned PyPI version is as
-  immutable as an image digest, because PyPI will not re-upload different content
-  under an existing version.
+- **Never add a job `container:` to a job that runs on `wyse`, and never mount
+  `/var/run/docker.sock`.** On a self-hosted runner a job container is created
+  through the host's Docker socket, and that socket is root on the host —
+  `docker run -v /:/host` is the whole exploit. A job that genuinely needs a
+  container must pin `runs-on: ubuntu-latest`, as `sast` does.
+- **`sast` stays on `ubuntu-latest`. Do not "finish the migration" by moving
+  it.** semgrep's prebuilt binaries require x86-64-v2 and that box is
+  x86-64-v1, so it fails with `CPU ISA level is lower than required` before it
+  scans anything. Installing from a wheel instead of the image does not help —
+  same binary. This is hardware, not configuration.
 - **Do not simplify the `runs-on` expression to a plain label.** It looks like
   four lines of duplication and it is the thing keeping untrusted fork code off
   hardware that holds unrelated production credentials.

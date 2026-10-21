@@ -98,45 +98,36 @@ jobs:
 
   sast:
     name: OWASP / static analysis
-    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
-    # One self-hosted runner serves this whole repo, so a wedged job blocks
-    # everything queued behind it — GitHub's 360-minute default is no longer
-    # harmless. Generous for two 1.65 GHz cores, but finite.
-    timeout-minutes: 45  # venv build + 4 rule packs, the slowest of the four
-    # NO `container:` ANY MORE, and it must not come back. A job container on a
-    # self-hosted runner is created by handing the runner the host's Docker
-    # socket, and access to that socket is root on the host — `docker run -v
-    # /:/host` is all it takes. On a public repo, on a machine that also holds
-    # the n8n credentials and the Cloudflare tunnel token, that is not a risk
-    # worth a convenience. The runner image therefore has no socket mounted,
-    # and semgrep is installed per job instead.
+    # The ONE job that does not move to the self-hosted runner, and not by
+    # choice: semgrep cannot execute on that machine at all. Its CPU is an AMD
+    # G-T56N (Bobcat, 2011), which is x86-64-v1 — `pni popcnt ssse3 sse4a`, with
+    # no SSE4.1, SSE4.2 or AVX. semgrep ships prebuilt `manylinux_2_34` binaries
+    # that require x86-64-v2, so glibc's loader refuses them outright:
     #
-    # Same tool, same version. The digest pin is replaced by `==1.172.0`, which
-    # is not a weakening: PyPI refuses to re-upload different content under an
-    # existing version, so a pinned version is as immutable as a digest. That
-    # is precisely the property the old `semgrep/semgrep:1.172.0` TAG lacked
-    # and the reason it was pinned by digest in the first place.
+    #   semgrep/bin/libs/libresolv.so.2: CPU ISA level is lower than required
+    #   Process completed with exit code 127
     #
-    # The honest gap: semgrep's own transitive dependencies are not pinned
-    # here. Closing it properly means a hash-pinned requirements file for the
-    # whole tree, regenerated on every semgrep bump. If this repo ever holds
-    # anything that justifies that, `pip-compile --generate-hashes` is the tool.
+    # That is a property of the hardware, not of how semgrep is installed. The
+    # Docker image below contains the same compiled binaries and fails the same
+    # way; installing from a wheel instead was tried and produced exactly the
+    # error above. There is no packaging trick that fixes it — only a newer CPU,
+    # or building semgrep-core from source for baseline x86-64, which is not a
+    # trade this repo should make.
+    #
+    # So this job stays on GitHub-hosted runners permanently, which also means
+    # the `container:` below is safe to keep: the socket concern that would
+    # otherwise rule it out only exists on the self-hosted runner, and this job
+    # never touches it. Keeping it is the better pin — an image digest fixes
+    # semgrep's whole dependency tree, where `pip install semgrep==1.172.0`
+    # fixes only semgrep itself.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      # Pinned by digest for the same reason the actions are pinned by SHA:
+      # a floating tag is someone else's mutable pointer into our CI.
+      image: semgrep/semgrep@sha256:65dcd4408adda7c183a6b4550cb1e9b19f7f627a6fbb7e0559bd466bedc44d7b # 1.172.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # A venv, not `pip install --user` or a bare `pip install`: both Ubuntu
-      # 24.04 (the self-hosted image) and GitHub's runner mark the system
-      # Python as externally managed, and pip refuses to touch it (PEP 668).
-      # A venv needs nothing preinstalled and behaves identically on both.
-      - name: Install semgrep
-        run: |
-          set -euo pipefail
-          python3 -m venv /tmp/semgrep-venv
-          /tmp/semgrep-venv/bin/pip install --quiet --upgrade pip
-          /tmp/semgrep-venv/bin/pip install --quiet semgrep==1.172.0
-          echo "/tmp/semgrep-venv/bin" >> "$GITHUB_PATH"
-          /tmp/semgrep-venv/bin/semgrep --version
-
       - name: semgrep (OWASP Top 10 + JS/TS + secrets)
         run: |
           semgrep scan \

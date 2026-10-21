@@ -376,14 +376,21 @@ the rules apply to admins too.
 
 ### Where those checks run
 
-The four Security jobs run on a **self-hosted runner** on a local box, not on
-GitHub's runners. `runs-on` is an expression rather than a label, and the split is
-the point:
+Three of the four Security jobs run on a **self-hosted runner** on a local box.
+`runs-on` is an expression rather than a label, and the split is the point:
 
-| Trigger | Runner |
-|---|---|
-| pull request **from a fork** | `ubuntu-latest` (GitHub-hosted, disposable) |
-| everything else — push, same-repo PR, cron, dispatch | `wyse` (self-hosted) |
+| Job | Trigger | Runner |
+|---|---|---|
+| secrets, env-guard, deps | pull request **from a fork** | `ubuntu-latest` (GitHub-hosted, disposable) |
+| secrets, env-guard, deps | everything else — push, same-repo PR, cron, dispatch | `wyse` (self-hosted) |
+| **sast (semgrep)** | always | `ubuntu-latest` — it *cannot* run on the other box |
+
+`sast` is pinned to GitHub-hosted runners by hardware, not by policy. That box's
+CPU is an AMD G-T56N (2011) at x86-64-v1; semgrep ships prebuilt
+`manylinux_2_34` binaries requiring x86-64-v2, and glibc's loader rejects them
+with `CPU ISA level is lower than required`. Installing from a wheel rather than
+the image was tried and fails identically, because it is the same compiled
+binary. Only a newer CPU fixes it.
 
 A self-hosted runner executes whatever the workflow file says, on hardware that
 persists between jobs and hosts unrelated services with their own credentials on
