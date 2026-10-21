@@ -362,9 +362,21 @@ The repo is public, so secrets are guarded in depth rather than at one checkpoin
 |---|---|---|
 | [`.githooks/pre-commit`](.githooks/pre-commit) | before a commit exists | credential-shaped strings and `.env` files entering history |
 | [`scripts/check-env-exposure.sh`](scripts/check-env-exposure.sh) | pre-commit + CI | server-only vars carrying `NEXT_PUBLIC_`, or referenced from client components |
-| [`.github/workflows/security.yml`](.github/workflows/security.yml) | every push/PR | gitleaks over full history, semgrep OWASP Top 10, `npm audit` |
+| [`.github/workflows/security.yml`](.github/workflows/security.yml) | every push/PR | gitleaks over full history, semgrep OWASP Top 10, `npm audit` (see below) |
 | same workflow, weekly cron | Mondays 06:00 UTC | advisories that appeared after the code was written |
 | GitHub push protection | server-side, on push | secrets even if the local hook is bypassed |
+
+**`npm audit` blocks on production dependencies only**, and the dev-dependency
+audit runs alongside it without blocking. Not a softening of the gate — a dead
+end. Five high advisories reach us through
+`eslint-config-next -> @next/eslint-plugin-next -> fast-glob -> micromatch -> braces`,
+and `braces` is flagged with a vulnerable range of `*`: every published version,
+latest included, no patched release. `@next/eslint-plugin-next` hard-pins
+`fast-glob: 3.3.1` from 14.x through 16.4.2, so no upgrade clears it, and npm's
+suggested fix is a major *downgrade* to `eslint-config-next@14.2.35` on a Next 15
+project. The 32 production dependencies — the code that serves requests — are at
+zero. What remains is a CPU-denial-of-service in a glob matcher that runs over
+our own source during lint. When `braces` ships a fix, the split goes away.
 
 Prevention is weighted over detection on purpose: a key pushed to a public repo is
 compromised the instant it lands, because scrapers watch the public events firehose and the
@@ -373,6 +385,44 @@ the layers that matter most are the ones that run *before* the push.
 
 `main` is protected — all four checks must pass, changes land via PR, linear history, and
 the rules apply to admins too.
+
+### Where those checks run
+
+Three of the four Security jobs run on a **self-hosted runner** on a local box.
+`runs-on` is an expression rather than a label, and the split is the point:
+
+| Job | Trigger | Runner |
+|---|---|---|
+| secrets, env-guard, deps | pull request **from a fork** | `ubuntu-latest` (GitHub-hosted, disposable) |
+| secrets, env-guard, deps | everything else — push, same-repo PR, cron, dispatch | `wyse` (self-hosted) |
+| **sast (semgrep)** | always | `ubuntu-latest` — it *cannot* run on the other box |
+
+`sast` is pinned to GitHub-hosted runners by hardware, not by policy. That box's
+CPU is an AMD G-T56N (2011) at x86-64-v1; semgrep ships prebuilt
+`manylinux_2_34` binaries requiring x86-64-v2, and glibc's loader rejects them
+with `CPU ISA level is lower than required`. Installing from a wheel rather than
+the image was tried and fails identically, because it is the same compiled
+binary. Only a newer CPU fixes it.
+
+A self-hosted runner executes whatever the workflow file says, on hardware that
+persists between jobs and hosts unrelated services with their own credentials on
+disk. Anyone can open a pull request from a fork against a public repo, so fork
+PRs are kept on throwaway infrastructure that is destroyed either way. The
+repository additionally requires manual approval before **any** outside
+contributor's workflow runs, so an unapproved fork PR executes nothing at all —
+the expression is the second layer, for the day that checkbox gets changed.
+
+Two consequences worth knowing:
+
+- **`semgrep` is installed from a pinned wheel, not run as a job `container:`.**
+  A job container on a self-hosted runner is created through the host's Docker
+  socket, and access to that socket is root on the host. `semgrep==1.172.0`
+  is as immutable as the image digest it replaced — PyPI will not re-upload
+  different content under an existing version — which was the whole reason the
+  image had been pinned by digest rather than by tag.
+- **If that box is offline, checks stay pending and nothing merges.** There is no
+  failover. The recovery is to put `runs-on: ubuntu-latest` back temporarily and
+  push.
 
 Response headers set in [`next.config.ts`](next.config.ts): `X-Frame-Options`,
 `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`,

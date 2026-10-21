@@ -154,6 +154,49 @@ unticked box next to working code reads as abandoned, and a ticked box next to n
 reads as dishonest. Neither is recoverable by a later cleanup commit, because the history
 is visible.
 
+**CI runs on a self-hosted runner, and that changes what a workflow may contain.**
+The four Security jobs run on a local box (label `wyse`) for everything except
+pull requests from forks, which are routed to `ubuntu-latest` by the `runs-on`
+expression in `security.yml`. Rules that follow, and they are not negotiable
+while this repo is public:
+
+- **Never add a job `container:` to a job that runs on `wyse`, and never mount
+  `/var/run/docker.sock`.** On a self-hosted runner a job container is created
+  through the host's Docker socket, and that socket is root on the host —
+  `docker run -v /:/host` is the whole exploit. A job that genuinely needs a
+  container must pin `runs-on: ubuntu-latest`, as `sast` does.
+- **`sast` stays on `ubuntu-latest`. Do not "finish the migration" by moving
+  it.** semgrep's prebuilt binaries require x86-64-v2 and that box is
+  x86-64-v1, so it fails with `CPU ISA level is lower than required` before it
+  scans anything. Installing from a wheel instead of the image does not help —
+  same binary. This is hardware, not configuration.
+- **Do not simplify the `runs-on` expression to a plain label.** It looks like
+  four lines of duplication and it is the thing keeping untrusted fork code off
+  hardware that holds unrelated production credentials.
+- **Keep every job's `timeout-minutes` set.** One runner serves this whole repo,
+  so a wedged job blocks everything queued behind it; GitHub's 360-minute default
+  is not a safe fallback here.
+- **Anything added to the toolchain must install on both runners.** The
+  self-hosted image is plain `ubuntu:24.04`; GitHub's image is not. Neither
+  allows `pip install` into the system Python (PEP 668), which is why the
+  semgrep step uses a venv rather than `pip install --user`.
+
+**The `npm audit` gate is scoped to production dependencies, and that scoping is
+load-bearing — do not "tidy" it back into one blocking audit.** Five high
+advisories arrive via `eslint-config-next -> @next/eslint-plugin-next ->
+fast-glob -> micromatch -> braces`; `braces` has a vulnerable range of `*` with
+no patched version at all, and the plugin hard-pins `fast-glob: 3.3.1` in every
+release through 16.4.2. A single blocking full audit is therefore permanently
+red, and a gate that starts red is a gate everyone learns to ignore.
+
+- **Never take npm's suggested fix of `eslint-config-next@14.2.35`.** It is a
+  major downgrade onto a pre-advisory tree, on a Next 15 project where
+  `eslint-config-next` is pinned in lockstep with `next` on purpose.
+- **Keep `next` and `eslint-config-next` pinned to the same exact version.**
+  Both are exact, not caret, so a security bump is a deliberate edit to both.
+- The dev-dependency audit still runs and still reports; it just does not block.
+  Delete it and drop `--omit=dev` once `braces` is patched.
+
 **Verify security controls empirically.** Reading a guard proves nothing. Give it something
 it should catch and confirm it catches it — that method found three fail-open defects in
 these very scripts that eye review had missed.

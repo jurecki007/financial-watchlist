@@ -14,6 +14,17 @@ on:
     - cron: "0 6 * * 1" # Mondays 06:00 UTC
   workflow_dispatch:
 
+# One runner serves this repo, so superseded runs are no longer merely wasteful
+# — they sit in a queue ahead of the run you actually care about. Cancel them.
+#
+# Keyed on the event as well as the ref, which the other repos do not need to
+# do: a push to the default branch shares a ref with the Monday 06:00 schedule,
+# so a ref-only group would let a routine push cancel the weekly full-history
+# sweep — the one run that exists to catch what was clean when it was written.
+concurrency:
+  group: security-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least privilege at the top: read-only for everything. The one job that needs
 # to write findings re-grants it for itself only, so a compromised action in the
 # other three jobs cannot publish to the security tab.
@@ -25,10 +36,39 @@ permissions:
 # code, and it runs here with our token. The trailing comment records which
 # release each SHA corresponds to, so Dependabot can still bump them.
 
+# RUNNERS. Every job below carries the same runs-on expression:
+#
+#   fork pull request -> ubuntu-latest      (GitHub-hosted, disposable)
+#   everything else   -> wyse               (self-hosted, ~/ci-runners)
+#
+# THIS REPOSITORY IS PUBLIC, and that is the whole reason for the split. A
+# self-hosted runner executes whatever the workflow says, on real hardware that
+# persists between jobs — and this particular machine also runs n8n, listmonk
+# and a Cloudflare tunnel, with their credentials on disk. Anyone can open a
+# pull request from a fork against a public repo. Sending those to a throwaway
+# GitHub runner means a hostile PR gets a container that is destroyed either
+# way, and never gets a shell next to the n8n database.
+#
+# This is defence in depth, not the only defence: the repository is also set to
+# require manual approval before ANY outside contributor's workflow runs
+# (Settings -> Actions -> "Require approval for all external contributors"),
+# so a fork PR does not execute at all until approved. The expression is here
+# because that setting is a checkbox someone can switch off by accident, and
+# because an approved-but-still-untrusted PR should not be on this hardware.
+#
+# The expression is spelled out per job rather than factored into one place:
+# GitHub Actions does not support YAML anchors, and the alternative — a tiny
+# job that outputs the label for the others to consume via `needs` — needs a
+# runner of its own to do it, which defeats the point.
+
 jobs:
   secrets:
     name: Secret scan (full history)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
+    # One self-hosted runner serves this whole repo, so a wedged job blocks
+    # everything queued behind it — GitHub's 360-minute default is no longer
+    # harmless. Generous for two 1.65 GHz cores, but finite.
+    timeout-minutes: 30  # full git history through gitleaks
     permissions:
       contents: read
       security-events: write
@@ -39,6 +79,20 @@ jobs:
           # in the objects and still readable on a public repo.
           fetch-depth: 0
 
+      # gitleaks-action downloads its binary to a HARDCODED /tmp path rather than
+      # to RUNNER_TEMP, and fails outright rather than overwriting:
+      #
+      #   Destination file path /tmp/gitleaks.tmp already exists
+      #
+      # On a GitHub-hosted runner /tmp is empty every job, so the bug is
+      # invisible. This runner is a long-lived container: /tmp persists between
+      # jobs, so the FIRST run on it succeeds and every run after fails. That is
+      # a nasty shape — it passes once, then breaks, and the error says nothing
+      # about why. RUNNER_TEMP is per-job and cleaned by the runner, which is
+      # exactly what this action should have used.
+      - name: Clear any gitleaks download left by a previous job
+        run: rm -rf /tmp/gitleaks.tmp /tmp/gitleaks-*
+
       - name: gitleaks
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
@@ -46,7 +100,11 @@ jobs:
 
   env-guard:
     name: Env var guard
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
+    # One self-hosted runner serves this whole repo, so a wedged job blocks
+    # everything queued behind it — GitHub's 360-minute default is no longer
+    # harmless. Generous for two 1.65 GHz cores, but finite.
+    timeout-minutes: 10  # one shell script over the tree
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: No real secrets in tracked files
@@ -54,7 +112,30 @@ jobs:
 
   sast:
     name: OWASP / static analysis
+    # The ONE job that does not move to the self-hosted runner, and not by
+    # choice: semgrep cannot execute on that machine at all. Its CPU is an AMD
+    # G-T56N (Bobcat, 2011), which is x86-64-v1 — `pni popcnt ssse3 sse4a`, with
+    # no SSE4.1, SSE4.2 or AVX. semgrep ships prebuilt `manylinux_2_34` binaries
+    # that require x86-64-v2, so glibc's loader refuses them outright:
+    #
+    #   semgrep/bin/libs/libresolv.so.2: CPU ISA level is lower than required
+    #   Process completed with exit code 127
+    #
+    # That is a property of the hardware, not of how semgrep is installed. The
+    # Docker image below contains the same compiled binaries and fails the same
+    # way; installing from a wheel instead was tried and produced exactly the
+    # error above. There is no packaging trick that fixes it — only a newer CPU,
+    # or building semgrep-core from source for baseline x86-64, which is not a
+    # trade this repo should make.
+    #
+    # So this job stays on GitHub-hosted runners permanently, which also means
+    # the `container:` below is safe to keep: the socket concern that would
+    # otherwise rule it out only exists on the self-hosted runner, and this job
+    # never touches it. Keeping it is the better pin — an image digest fixes
+    # semgrep's whole dependency tree, where `pip install semgrep==1.172.0`
+    # fixes only semgrep itself.
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     container:
       # Pinned by digest for the same reason the actions are pinned by SHA:
       # a floating tag is someone else's mutable pointer into our CI.
@@ -73,7 +154,11 @@ jobs:
 
   deps:
     name: Dependency audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && 'ubuntu-latest' || 'wyse' }}
+    # One self-hosted runner serves this whole repo, so a wedged job blocks
+    # everything queued behind it — GitHub's 360-minute default is no longer
+    # harmless. Generous for two 1.65 GHz cores, but finite.
+    timeout-minutes: 20  # npm audit, network-bound
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Skip if no package.json yet
@@ -85,6 +170,42 @@ jobs:
         if: steps.check.outputs.exists == 'true'
         with:
           node-version: 22
-      - name: npm audit
+      # Split into a blocking production audit and a non-blocking full one, and
+      # the split is a concession to a real dead end rather than a preference.
+      #
+      # Five high advisories live in the ESLint toolchain and cannot currently be
+      # fixed at any version: `braces` is flagged with a vulnerable range of `*`
+      # — every published version, latest included, with no patched release —
+      # and it reaches us as
+      #
+      #   eslint-config-next -> @next/eslint-plugin-next -> fast-glob
+      #     -> micromatch -> braces
+      #
+      # where `@next/eslint-plugin-next` hard-pins `fast-glob: 3.3.1` in every
+      # version from 14.x through 16.4.2. Upgrading cannot clear it. npm's own
+      # suggested fix is `eslint-config-next@14.2.35`, a MAJOR DOWNGRADE onto a
+      # tree that happens to predate the advisory — on a Next 15 project, with
+      # the version deliberately pinned in lockstep with `next`. That is not a
+      # fix, it is moving backwards to make a number go green.
+      #
+      # So the gate is scoped to what ships. `--omit=dev` covers the 32
+      # production dependencies — the code that actually serves requests, where
+      # the critical Next.js RCE and the sharp/libheif issues lived, and which
+      # is at zero. The remaining five are a CPU-denial-of-service in a glob
+      # matcher that runs over our own source on our own machines during lint.
+      # Worth knowing about; not worth blocking every PR on something no
+      # dependency change can resolve.
+      #
+      # The full audit still runs, still reports, and still shows up in the job
+      # log — it just does not block. When `braces` ships a patched version, or
+      # the plugin stops pinning `fast-glob`, delete the second step and put
+      # `--omit=dev` away: the goal is for one blocking full audit to be viable
+      # again, not for this split to be permanent.
+      - name: npm audit (production dependencies — blocking)
         if: steps.check.outputs.exists == 'true'
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: npm audit (including dev dependencies — informational)
+        if: ${{ always() && steps.check.outputs.exists == 'true' }}
+        continue-on-error: true
         run: npm audit --audit-level=high
